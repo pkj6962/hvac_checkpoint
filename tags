@@ -1,0 +1,150 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+HVAC_CLIENT	hvac_client.cpp	15;"	d	file:
+HVAC_LOG_DIR	hvac_logging.h	73;"	d
+HVAC_LOG_LEVEL	hvac_logging.h	69;"	d
+HVAC_LOG_PREFIX	hvac_logging.h	78;"	d
+HVAC_SERVER	hvac_server.cpp	9;"	d	file:
+HVAC_VERSION	hvac_internal.h	25;"	d
+HVAC_finalize_logging	hvac_logging.c	/^void HVAC_finalize_logging()$/;"	f
+L4C_ALERT	hvac_logging.h	85;"	d
+L4C_CAT_NAME	hvac_logging.h	41;"	d
+L4C_CAT_NAME	hvac_logging.h	49;"	d
+L4C_CAT_NAME	hvac_logging.h	60;"	d
+L4C_CRIT	hvac_logging.h	86;"	d
+L4C_DEBUG	hvac_logging.h	91;"	d
+L4C_ERR	hvac_logging.h	87;"	d
+L4C_FATAL	hvac_logging.h	84;"	d
+L4C_INFO	hvac_logging.h	90;"	d
+L4C_LOG_AT_PRIORITY	hvac_logging.h	81;"	d
+L4C_LOG_DIR	hvac_logging.h	46;"	d
+L4C_LOG_DIR	hvac_logging.h	55;"	d
+L4C_LOG_NAME_PREFIX	hvac_logging.h	47;"	d
+L4C_LOG_NAME_PREFIX	hvac_logging.h	56;"	d
+L4C_NOTICE	hvac_logging.h	89;"	d
+L4C_PERROR	hvac_logging.h	98;"	d
+L4C_TRACE	hvac_logging.h	92;"	d
+L4C_WARN	hvac_logging.h	88;"	d
+MAP_OR_FAIL	hvac_internal.h	34;"	d
+MAP_OR_FAIL	hvac_internal.h	51;"	d
+REAL_DECL	hvac_internal.h	29;"	d
+REAL_DECL	hvac_internal.h	46;"	d
+WRAP_DECL	hvac_internal.h	32;"	d
+WRAP_DECL	hvac_internal.h	49;"	d
+_HVAC_LOGGING_H_	hvac_logging.h	20;"	d
+__HVAC_DATA_MOVER_INTERNAL_H__	hvac_data_mover_internal.h	2;"	d
+__HVAC_INTERNAL_H__	hvac_internal.h	9;"	d
+__HVAC_RPC_ENGINE_INTERNAL_H__	hvac_comm.h	2;"	d
+addr	hvac_server.cpp	/^	hg_addr_t addr;$/;"	m	struct:hvac_lookup_arg	file:
+address_cache	hvac_comm_client.cpp	/^std::map<int, std::string> address_cache;$/;"	v
+buffer	hvac_comm.cpp	/^    void *buffer;$/;"	m	struct:hvac_rpc_state	file:
+buffer	hvac_comm_client.cpp	/^    void *buffer;$/;"	m	struct:hvac_rpc_state	file:
+bulk_handle	hvac_comm.cpp	/^    hg_bulk_t bulk_handle;$/;"	m	struct:hvac_rpc_state	file:
+bulk_handle	hvac_comm_client.cpp	/^    hg_bulk_t bulk_handle;$/;"	m	struct:hvac_rpc_state	file:
+close	wrappers.c	/^int WRAP_DECL(close)(int fd)$/;"	f
+context	hvac_server.cpp	/^	hg_context_t *context;$/;"	m	struct:hvac_lookup_arg	file:
+data_cond	hvac_data_mover.cpp	/^pthread_cond_t data_cond = PTHREAD_COND_INITIALIZER;$/;"	v
+data_mutex	hvac_data_mover.cpp	/^pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;$/;"	v
+data_queue	hvac_data_mover.cpp	/^queue<string> data_queue;$/;"	v
+done	hvac_comm_client.cpp	/^static hg_bool_t done = HG_FALSE;$/;"	v	file:
+done_cond	hvac_comm_client.cpp	/^static pthread_cond_t done_cond = PTHREAD_COND_INITIALIZER;$/;"	v	file:
+done_mutex	hvac_comm_client.cpp	/^static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;$/;"	v	file:
+fd_map	hvac_client.cpp	/^std::map<int,std::string> fd_map;$/;"	v
+fd_redir_map	hvac_client.cpp	/^std::map<int, int > fd_redir_map;$/;"	v
+fd_to_path	hvac_data_mover.cpp	/^map<int,string> fd_to_path;$/;"	v
+fopen	wrappers.c	/^FILE *WRAP_DECL(fopen)(const char *path, const char *mode)$/;"	f
+fopen64	wrappers.c	/^FILE *WRAP_DECL(fopen64)(const char *path, const char *mode)$/;"	f
+g_disable_redirect	hvac_client.cpp	/^bool g_disable_redirect = true;$/;"	v
+g_hvac_comm_initialized	hvac_client.cpp	/^bool g_hvac_comm_initialized = false;$/;"	v
+g_hvac_initialized	hvac_client.cpp	/^bool g_hvac_initialized = false;$/;"	v
+g_hvac_server_count	hvac_client.cpp	/^uint32_t g_hvac_server_count = 0;$/;"	v
+g_mercury_init	hvac_client.cpp	/^bool g_mercury_init=false;$/;"	v
+handle	hvac_comm.cpp	/^    hg_handle_t handle;$/;"	m	struct:hvac_rpc_state	file:
+handle	hvac_comm_client.cpp	/^    hg_handle_t handle;$/;"	m	struct:hvac_rpc_state	file:
+hg_class	hvac_comm.cpp	/^static hg_class_t *hg_class = NULL;$/;"	v	file:
+hg_class	hvac_server.cpp	/^	hg_class_t *hg_class;$/;"	m	struct:hvac_lookup_arg	file:
+hg_context	hvac_comm.cpp	/^static hg_context_t *hg_context = NULL;$/;"	v	file:
+hvac_client_block	hvac_comm_client.cpp	/^void hvac_client_block()$/;"	f
+hvac_client_close_id	hvac_comm_client.cpp	/^static hg_id_t hvac_client_close_id;$/;"	v	file:
+hvac_client_comm_gen_close_rpc	hvac_comm_client.cpp	/^void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd)$/;"	f
+hvac_client_comm_gen_open_rpc	hvac_comm_client.cpp	/^void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd)$/;"	f
+hvac_client_comm_gen_read_rpc	hvac_comm_client.cpp	/^void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset)$/;"	f
+hvac_client_comm_gen_seek_rpc	hvac_comm_client.cpp	/^void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, int offset, int whence)$/;"	f
+hvac_client_comm_lookup_addr	hvac_comm_client.cpp	/^hg_addr_t hvac_client_comm_lookup_addr(int rank)$/;"	f
+hvac_client_comm_register_rpc	hvac_comm_client.cpp	/^void hvac_client_comm_register_rpc()$/;"	f
+hvac_client_init	hvac_client.cpp	/^static void __attribute__((constructor)) hvac_client_init()$/;"	f	file:
+hvac_client_open_id	hvac_comm_client.cpp	/^static hg_id_t hvac_client_open_id;$/;"	v	file:
+hvac_client_rpc_id	hvac_comm_client.cpp	/^static hg_id_t hvac_client_rpc_id;$/;"	v	file:
+hvac_client_seek_id	hvac_comm_client.cpp	/^static hg_id_t hvac_client_seek_id;$/;"	v	file:
+hvac_client_shutdown	hvac_client.cpp	/^static void __attribute((destructor)) hvac_client_shutdown()$/;"	f
+hvac_close_rpc_handler	hvac_comm.cpp	/^hvac_close_rpc_handler(hg_handle_t handle)$/;"	f	file:
+hvac_close_rpc_register	hvac_comm.cpp	/^hvac_close_rpc_register(void)$/;"	f
+hvac_comm_create_handle	hvac_comm.cpp	/^hvac_comm_create_handle(hg_addr_t addr, hg_id_t id, hg_handle_t *handle)$/;"	f
+hvac_comm_free_addr	hvac_comm.cpp	/^hvac_comm_free_addr(hg_addr_t addr)$/;"	f
+hvac_comm_get_class	hvac_comm.cpp	/^hg_class_t *hvac_comm_get_class()$/;"	f
+hvac_comm_get_context	hvac_comm.cpp	/^hg_context_t *hvac_comm_get_context()$/;"	f
+hvac_comm_list_addr	hvac_comm.cpp	/^void hvac_comm_list_addr()$/;"	f
+hvac_data_dir	hvac_client.cpp	/^char *hvac_data_dir = NULL;$/;"	v
+hvac_data_mover_fn	hvac_data_mover.cpp	/^void *hvac_data_mover_fn(void *args)$/;"	f
+hvac_file_tracked	hvac_client.cpp	/^bool hvac_file_tracked(int fd)$/;"	f
+hvac_get_path	hvac_client.cpp	/^const char * hvac_get_path(int fd)$/;"	f
+hvac_init_comm	hvac_comm.cpp	/^void hvac_init_comm(hg_bool_t listen)$/;"	f
+hvac_init_logging	hvac_logging.c	/^void hvac_init_logging()$/;"	f
+hvac_lookup_arg	hvac_server.cpp	/^struct hvac_lookup_arg {$/;"	s	file:
+hvac_open_cb	hvac_comm_client.cpp	/^hvac_open_cb(const struct hg_cb_info *info)$/;"	f	file:
+hvac_open_rpc_handler	hvac_comm.cpp	/^hvac_open_rpc_handler(hg_handle_t handle)$/;"	f	file:
+hvac_open_rpc_register	hvac_comm.cpp	/^hvac_open_rpc_register(void)$/;"	f
+hvac_open_state	hvac_comm_client.cpp	/^struct hvac_open_state{$/;"	s	file:
+hvac_progress_fn	hvac_comm.cpp	/^void *hvac_progress_fn(void *args)$/;"	f
+hvac_progress_thread_shutdown_flags	hvac_comm.cpp	/^static int hvac_progress_thread_shutdown_flags = 0;$/;"	v	file:
+hvac_read_block	hvac_comm_client.cpp	/^ssize_t hvac_read_block()$/;"	f
+hvac_read_cb	hvac_comm_client.cpp	/^hvac_read_cb(const struct hg_cb_info *info)$/;"	f	file:
+hvac_remote_close	hvac_client.cpp	/^void hvac_remote_close(int fd){$/;"	f
+hvac_remote_lseek	hvac_client.cpp	/^ssize_t hvac_remote_lseek(int fd, int offset, int whence)$/;"	f
+hvac_remote_pread	hvac_client.cpp	/^ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offset)$/;"	f
+hvac_remote_read	hvac_client.cpp	/^ssize_t hvac_remote_read(int fd, void *buf, size_t count)$/;"	f
+hvac_remove_fd	hvac_client.cpp	/^bool hvac_remove_fd(int fd)$/;"	f
+hvac_rpc_handler	hvac_comm.cpp	/^hvac_rpc_handler(hg_handle_t handle)$/;"	f	file:
+hvac_rpc_handler_bulk_cb	hvac_comm.cpp	/^hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)$/;"	f	file:
+hvac_rpc_register	hvac_comm.cpp	/^hvac_rpc_register(void)$/;"	f
+hvac_rpc_state	hvac_comm.cpp	/^struct hvac_rpc_state {$/;"	s	file:
+hvac_rpc_state	hvac_comm_client.cpp	/^struct hvac_rpc_state {$/;"	s	file:
+hvac_seek_block	hvac_comm_client.cpp	/^ssize_t hvac_seek_block()$/;"	f
+hvac_seek_cb	hvac_comm_client.cpp	/^hvac_seek_cb(const struct hg_cb_info *info)$/;"	f	file:
+hvac_seek_rpc_handler	hvac_comm.cpp	/^hvac_seek_rpc_handler(hg_handle_t handle)$/;"	f	file:
+hvac_seek_rpc_register	hvac_comm.cpp	/^hvac_seek_rpc_register(void)$/;"	f
+hvac_server_count	hvac_server.cpp	/^uint32_t hvac_server_count = 0;$/;"	v
+hvac_server_rank	hvac_comm.cpp	/^static int hvac_server_rank = -1;$/;"	v	file:
+hvac_shutdown_comm	hvac_comm.cpp	/^void hvac_shutdown_comm()$/;"	f
+hvac_start_comm_server	hvac_server.cpp	/^int hvac_start_comm_server(void)$/;"	f
+hvac_track_file	hvac_client.cpp	/^bool hvac_track_file(const char *path, int flags, int fd)$/;"	f
+id	hvac_server.cpp	/^	hg_id_t id;$/;"	m	struct:hvac_lookup_arg	file:
+in	hvac_comm.cpp	/^    hvac_rpc_in_t in;$/;"	m	struct:hvac_rpc_state	file:
+init_mutex	hvac_client.cpp	/^pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;$/;"	v
+local_fd	hvac_comm_client.cpp	/^    uint32_t local_fd;$/;"	m	struct:hvac_open_state	file:
+log_preformatter_internal	hvac_logging.c	/^void log_preformatter_internal( unsigned priority, const char* filename, unsigned linenum, const char *format_str, ...)$/;"	f
+lseek	wrappers.c	/^off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)$/;"	f
+lseek64	wrappers.c	/^off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)$/;"	f
+main	hvac_server.cpp	/^int main(int argc, char **argv)$/;"	f
+open	wrappers.c	/^int WRAP_DECL(open)(const char *pathname, int flags, ...)$/;"	f
+open64	wrappers.c	/^int WRAP_DECL(open64)(const char *pathname, int flags, ...)$/;"	f
+param_layout_to_use	hvac_logging.c	/^const char *param_layout_to_use = "dated"; \/\/ could also be "basic"$/;"	v
+param_max_file_size	hvac_logging.c	/^long param_max_file_size = 100 * 1024 * 1024;  \/\/ Value is in bytes$/;"	v
+param_max_num_files	hvac_logging.c	/^long param_max_num_files = 10;$/;"	v
+path_cache_map	hvac_data_mover.cpp	/^map<string, string> path_cache_map;$/;"	v
+pread	wrappers.c	/^ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)$/;"	f
+read	wrappers.c	/^ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)$/;"	f
+read64	wrappers.c	/^ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)$/;"	f
+read_ret	hvac_comm_client.cpp	/^ssize_t read_ret = -1;$/;"	v
+readv	wrappers.c	/^ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)$/;"	f
+server_rank	hvac_comm.cpp	/^static int server_rank = -1;$/;"	v	file:
+size	hvac_comm.cpp	/^    hg_size_t size;$/;"	m	struct:hvac_rpc_state	file:
+size	hvac_comm_client.cpp	/^    hg_size_t size;$/;"	m	struct:hvac_rpc_state	file:
+tl_disable_redirect	hvac_client.cpp	/^__thread bool tl_disable_redirect = false;$/;"	v
+tl_disable_redirect	hvac_server.cpp	/^__thread bool tl_disable_redirect = false;$/;"	v
+value	hvac_comm_client.cpp	/^    uint32_t value;$/;"	m	struct:hvac_rpc_state	file:
+write	wrappers.c	/^ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)$/;"	f
