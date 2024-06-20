@@ -145,10 +145,26 @@ void hvac_client_block()
 ssize_t hvac_read_block()
 {
     ssize_t bytes_read;
+    struct timespec timeout; 
+    int wait_status; 
+    int TIMEOUT_SECONDS = 1; 
+
+    clock_gettime(CLOCK_REALTIME, &timeout); 
+    timeout.tv_sec += TIMEOUT_SECONDS; 
+
     /* wait for callbacks to finish */
     pthread_mutex_lock(&done_mutex);
     while (done != HG_TRUE)
-        pthread_cond_wait(&done_cond, &done_mutex);
+    {
+	wait_status = pthread_cond_timedwait(&done_cond, &done_mutex, &timeout); 
+        if (wait_status == ETIMEDOUT) 
+	{
+		L4C_INFO("TIMEOUT: HVAC remote read failed due to timeout; it will be redirected to pfs"); //Does this deregister memory?
+		pthread_mutex_unlock(&done_mutex); 
+		return -1; 
+	}
+	//pthread_cond_wait(&done_cond, &done_mutex);
+    }
     bytes_read = read_ret;
     pthread_mutex_unlock(&done_mutex);
     return bytes_read;
