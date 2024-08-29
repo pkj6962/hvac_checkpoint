@@ -154,7 +154,6 @@ int WRAP_DECL(close)(int fd)
 	L4C_INFO("Close - path: %s", path); 
 
 
-
 	if ((ret = __real_close(fd)) != 0)
 	{
 		L4C_PERROR("Error from close");
@@ -325,7 +324,7 @@ ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
 	{
 		L4C_INFO("Readv to tracked file %s",path);
 	}
-	L4C_INFO("readv - path: %s", path); 
+	L4C_INFO("Pread - path: %s", path); 
 
 
 	return __real_readv(fd, iov, iovcnt);

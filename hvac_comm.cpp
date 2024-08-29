@@ -332,9 +332,10 @@ hvac_rpc_handler(hg_handle_t handle)
         &hvac_rpc_state_p->size, HG_BULK_READ_ONLY,
         &hvac_rpc_state_p->bulk_handle);
     assert(ret == 0);
-
-	// sy: add - logging code
-	snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", hvac_rpc_state_p->in.localfd); 
+    
+	// sy: add - logging code*/
+    /*
+    snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", hvac_rpc_state_p->in.localfd); 
     log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
     strncpy(log_info.request, "read", sizeof(log_info.request) - 1);
     log_info.request[sizeof(log_info.request) - 1] = '\0';
@@ -355,12 +356,12 @@ hvac_rpc_handler(hg_handle_t handle)
     log_info.n_epoch = -1;
     log_info.n_batch = -1;
     logging_info(&log_info, "server");
-
+    */
 	hvac_rpc_out_t out;
 
     if (hvac_rpc_state_p->in.offset == -1){
         readbytes = read(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-//        L4C_DEBUG("Server Rank %d : Read %ld bytes from file %s", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
+        L4C_DEBUG("Server Rank %d : Read %ld bytes from file %s", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
 /*
 		if (readbytes < 0) {
             readbytes = read(hvac_rpc_state_p->in.localfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
@@ -369,12 +370,14 @@ hvac_rpc_handler(hg_handle_t handle)
 */
     }else
     {
-		gettimeofday(&log_info.clocktime, NULL);
-		strncpy(log_info.expn, "SSNVMeRequest", sizeof(log_info.expn) - 1);
-    	log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+        
+		//gettimeofday(&log_info.clocktime, NULL);
+		//strncpy(log_info.expn, "SSNVMeRequest", sizeof(log_info.expn) - 1);
+    	//log_info.expn[sizeof(log_info.expn) - 1] = '\0';
         readbytes = pread(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
-		gettimeofday(&tmp_time, NULL);	
-//        L4C_DEBUG("Server Rank %d : PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(),hvac_rpc_state_p->in.offset );
+		//gettimeofday(&tmp_time, NULL);	
+        
+        L4C_DEBUG("Server Rank %d : PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(),hvac_rpc_state_p->in.offset );
 /*
 		 char *hex_buf = buffer_to_hex(hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
             if (hex_buf) {
