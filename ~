@@ -261,9 +261,7 @@ ssize_t hvac_read_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pth
 	pthread_mutex_lock(mutex);
 
     while (*done != HG_TRUE) {
-		wait_status = pthread_cond_wait(cond, mutex);
-		//wait_status = pthread_cond_timedwait(cond, mutex, &timeout);
-        /*
+		wait_status = pthread_cond_timedwait(cond, mutex, &timeout);
         if (wait_status == ETIMEDOUT){
 	    	L4C_INFO("TIMEOUT: HVAC remote read failed due to timeout; it will be redirected to pfs");
 			// Timeout counter update
@@ -274,7 +272,6 @@ ssize_t hvac_read_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pth
 		    pthread_mutex_unlock(mutex);
 		    return -1;
     	}
-        */
     }
     ssize_t result = *bytes_read;
     pthread_mutex_unlock(mutex);

@@ -24,27 +24,38 @@ struct hvac_lookup_arg {
 
 int hvac_start_comm_server(void)
 {
-    HG_Set_log_level("DEBUG");
+	
+	L4C_INFO("0"); 
+    
+	HG_Set_log_level("DEBUG");
 
-    /* Start the data mover before anything else */
+	L4C_INFO("1"); 
+    
+	/* Start the data mover before anything else */
     pthread_t hvac_data_mover_tid;
-   /*
     if (pthread_create(&hvac_data_mover_tid, NULL, hvac_data_mover_fn, NULL) != 0){
 		L4C_FATAL("Failed to initialized mecury progress thread\n");
+		L4C_INFO("Failed to initialized mecury progress thread\n");
 	}
-    */
 
-
-
+	L4C_INFO("k"); 
     /* True means we're a listener */
     hvac_init_comm(true);
+
+	L4C_INFO("a"); 
+
 
     /* Post our address */
     hvac_comm_list_addr();
 
+	L4C_INFO("b");
+
     /* Register basic RPC */
     hvac_rpc_register();
-    hvac_open_rpc_register();
+    
+	L4C_INFO("c"); 
+	
+	hvac_open_rpc_register();
     hvac_close_rpc_register();
     hvac_seek_rpc_register();
 
@@ -70,10 +81,18 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    hvac_server_count = atoi(argv[1]);
+    FILE * fp = fopen("isThisCreated", "w");
+    if (fp == NULL)
+    {
+	perror("file open error"); 
+	exit(1);
+    }
 
+
+    hvac_server_count = atoi(argv[1]);
+	puts("a"); 
     hvac_init_logging();
-    L4C_INFO("Server process starting up");
+    L4C_INFO("Server process starting upaaa");
     hvac_start_comm_server();
     L4C_INFO("HVAC Server process shutting down");
     return (l_error);

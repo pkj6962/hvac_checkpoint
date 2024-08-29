@@ -16,7 +16,6 @@ namespace fs = std::filesystem;
 
 pthread_cond_t data_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t path_map_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 map<int,string> fd_to_path;
 map<string, string> path_cache_map;
@@ -34,10 +33,8 @@ void *hvac_data_mover_fn(void *args)
 
     while (1) {
         pthread_mutex_lock(&data_mutex);
+        pthread_cond_wait(&data_cond, &data_mutex);
         
-		while(data_queue.empty()){
-			pthread_cond_wait(&data_cond, &data_mutex);
-        }
         /* We can do stuff here when signaled */
         while (!data_queue.empty()){
             local_list.push(data_queue.front());
@@ -56,12 +53,8 @@ void *hvac_data_mover_fn(void *args)
             string filename = dirpath + string("/") + fs::path(local_list.front().c_str()).filename().string();
 
             try{
-            	fs::copy(local_list.front(), filename);
-				pthread_mutex_lock(&path_map_mutex); //sy: add
-            	path_cache_map[local_list.front()] = filename;
-				pthread_mutex_unlock(&path_map_mutex); //sy: add
-							
-	
+            fs::copy(local_list.front(), filename);
+            path_cache_map[local_list.front()] = filename;
             } catch (...)
             {
                 L4C_INFO("Failed to copy %s to %s\n",local_list.front().c_str(), filename);

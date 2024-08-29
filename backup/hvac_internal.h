@@ -7,7 +7,7 @@
  */
 #ifndef __HVAC_INTERNAL_H__
 #define __HVAC_INTERNAL_H__
-
+#pragma once 
 
 
 #include <stdio.h>

@@ -9,7 +9,6 @@ using namespace std;
 
 extern pthread_cond_t data_cond;
 extern pthread_mutex_t data_mutex;
-extern pthread_mutex_t path_map_mutex;
 extern queue<string> data_queue;
 extern map<int, string> fd_to_path;
 extern map<string, string> path_cache_map;

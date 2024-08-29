@@ -20,17 +20,6 @@
 #include <string.h>
 #include <assert.h>
 
-// sy: add for debugging purpose
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdarg.h>
-
-
 #include "hvac_internal.h"
 #include "hvac_logging.h"
 #include "execinfo.h"
@@ -93,36 +82,67 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	int ret = 0;
 	va_list ap;
 	int mode = 0;
-	int use_mode = 0; //sy: add // you can revert this change
+
 
 	if (flags & O_CREAT)
 	{
 		va_start(ap, flags);
 		mode = va_arg(ap, int);
 		va_end(ap);
-		use_mode = 1; //sy: add
 	}
 
 	MAP_OR_FAIL(open);
-	if (g_disable_redirect || tl_disable_redirect){
-		if (use_mode) { //sy: add
-            return __real_open(pathname, flags, mode);
-        }
-		else {
-			return __real_open(pathname, flags, mode);
-		}
-	}
+	if (g_disable_redirect || tl_disable_redirect) return __real_open(pathname, flags, mode);
 
 	/* For now pass the open to GPFS  - I think the open is cheap
 	 * possibly asychronous.
 	 * If this impedes performance we can investigate a cheap way of generating
 	 * an FD
 	 */
-	//ret = __real_open(pathname, flags, mode); //original code
-	ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
+	ret = __real_open(pathname, flags, mode);
 
 	// C++ code determines whether to track
 	if (ret != -1){
+		if (hvac_track_file(pathname, flags, ret))
+		{
+			L4C_INFO("Open: Tracking File %s",pathname);
+		}
+	}
+	
+	return ret;
+}
+
+int WRAP_DECL(open64)(const char *pathname, int flags, ...)
+{
+	int ret = 0;
+	va_list ap;
+	int mode = 0;
+
+
+	if (flags & O_CREAT)
+	{
+		va_start(ap, flags);
+		mode = va_arg(ap, int);
+		va_end(ap);
+	}
+
+
+	MAP_OR_FAIL(open64);
+	if (g_disable_redirect || tl_disable_redirect) return __real_open64(pathname, flags, mode);	
+
+
+	if (mode)
+	{
+		ret = __real_open64(pathname, flags, mode);
+	}
+	else
+	{
+		ret = __real_open64(pathname, flags);
+	}
+
+
+	if (ret != -1)
+	{
 		if (hvac_track_file(pathname, flags, ret))
 		{
 			L4C_INFO("Open64: Tracking file %s",pathname);
@@ -147,10 +167,13 @@ int WRAP_DECL(close)(int fd)
 	const char *path = hvac_get_path(fd);
 	if (path)
 	{
-//		L4C_INFO("Close to file %s",path);
+		L4C_INFO("Close to file %s",path);
 		hvac_remove_fd(fd);
 	}
 
+	//hvac_remote_close(fd);
+
+	/* Close the passed in file-descriptor tracked or not */
 	if ((ret = __real_close(fd)) != 0)
 	{
 		L4C_PERROR("Error from close");
@@ -168,43 +191,62 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 	//remove me
     MAP_OR_FAIL(read);	
 	
-    L4C_INFO("read function: Im here"); 
-
     const char *path = hvac_get_path(fd);
 
 
 	ret = hvac_remote_read(fd,buf,count);
 
-	if (path)
+    
+    if (ret == -1)
     {
-        L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
+		ret = __real_read(fd,buf,count);	// HVAC reread the file from PFS (its request to pfs must succeeded.
+        if (path) 
+        {
+        	L4C_INFO("Read to file %s of size %ld returning %ld bytes from pfs",path,count,ret);
+        }
+        //else   ;// continue;  // We don't leave the log when it is normal reading from PFS. 
+
     }
+    else
+    {
+        L4C_INFO("Read to file %s of size %ld returning %ld bytes", path, count, ret); 
+    }
+    
+    /*
+	if (path)           // HVAC tracked (cached) the file. 
+	{
+		if (ret != -1)  // HVAC succeeded to read the file.
+		{
+        		L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
+		}
+		else            // HVAC tracked(cached) the file but failed to read the file. 
+	    {
+			ret = __real_read(fd,buf,count);	// HVAC reread the file from PFS (its request to pfs must succeeded.
+        	L4C_INFO("Read to file %s of size %ld returning %ld bytes from pfs",path,count,ret);
+		}
+
+	}
+    else{               // HVAC didn't track the file (i.e. it is the first time to read this file) 
+        ret == __real_read(fd, buf, count); 
+        L4C_INFO("Read to file %s of size %ld returning %ld bytes from pfs",path,count,ret);
+    }
+    */
 	
-	if (ret < 0)
+    /*
+	if (path && ret != -1) // Hvac succeeded to track the fd and Remote read succeeded 
+        {
+    		L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
+        }
+	
+	if (ret == -1) // -1 can be returncd as rc in two case: 1. hvac_file_tracked failed (- when reading non-cached file. In this case PATH is NULL). 2. Failure of request to Hvac
 	{
 		ret = __real_read(fd,buf,count);	
+        if (path) 
+		    L4C_INFO("Read to file %s of size %ld returning %ld bytes from pfs",path,count,ret);
 	}
-		
+	*/	
     return ret;
 }
-
-/* sy: function for debugging */
-char *buffer_to_hex(const void *buf, size_t size) {
-    const char *hex_digits = "0123456789ABCDEF";
-    const unsigned char *buffer = (const unsigned char *)buf;
-    char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
-    if (!hex_str) {
-        perror("malloc");
-        return NULL;
-    }
-    for (size_t i = 0; i < size; ++i) {
-        hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
-        hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
-    }
-    hex_str[size * 2] = '\0'; // Null terminator
-    return hex_str;
-}
-
 
 ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
 {
@@ -212,36 +254,11 @@ ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
 	MAP_OR_FAIL(pread);
 
 	const char *path = hvac_get_path(fd);
-
 	if (path)
 	{                
-//		L4C_INFO("pread to tracked file %s",path);
-		
-//		memset(buf, 0, count);
+		L4C_INFO("pread to tracked file %s",path);
 		ret = hvac_remote_pread(fd, buf, count, offset);
-
-/*
-            if (ret >0) {
-		            char *hex_buf = buffer_to_hex(buf, ret);
-                L4C_INFO("Buffer content after remote read: %s\n", hex_buf);
-                free(hex_buf);
-            }
-		memset(buf, 0, count);
-		ssize_t cnt = __real_pread(fd, buf, count, offset);
-		 char *hex_buff = buffer_to_hex(buf,cnt);
-            if (hex_buff) {
-                L4C_INFO("Buffer content after real read: %s\n", hex_buff);
-                free(hex_buff);
-            }
-			
-                L4C_INFO("offset %d bytesRead original %d bytesRead hvac %d\n", offset, cnt, ret);
-*/
-		if(ret < 0){
-			
-			L4C_INFO("remote pread_error returned %s",path);
-			ret = __real_pread(fd,buf,count,offset);
-			L4C_INFO("readbytes %d\n", ret);
-		}
+		ret = __real_pread(fd,buf,count,offset);
 	}
 	else
 	{
