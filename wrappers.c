@@ -176,6 +176,8 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 
 	ret = hvac_remote_read(fd,buf,count);
 
+	L4C_INFO("path: %s, ret: %d", path, ret); 
+	
 	if (path)
     {
         L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
