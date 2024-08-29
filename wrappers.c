@@ -118,8 +118,8 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	 * If this impedes performance we can investigate a cheap way of generating
 	 * an FD
 	 */
-	//ret = __real_open(pathname, flags, mode); //original code
-	ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
+	ret = __real_open(pathname, flags, mode); //original code
+	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
 
 	// C++ code determines whether to track
 	if (ret != -1){
