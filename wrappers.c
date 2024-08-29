@@ -127,11 +127,12 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 		{
 			L4C_INFO("Open64: Tracking file %s",pathname);
 		}
+		else{
+			L4C_INFO("Tracking %s failed", pathname); 
+		}
 	}
 
-	
 	return ret;
-
 }
 
 
