@@ -151,6 +151,9 @@ int WRAP_DECL(close)(int fd)
 //		L4C_INFO("Close to file %s",path);
 		hvac_remove_fd(fd);
 	}
+	L4C_INFO("Close - path: %s", path); 
+
+
 
 	if ((ret = __real_close(fd)) != 0)
 	{
@@ -176,7 +179,7 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 
 	ret = hvac_remote_read(fd,buf,count);
 
-	L4C_INFO("path: %s, ret: %d", path, ret); 
+	L4C_INFO("Read - path: %s, ret: %d", path, ret); 
 	
 	if (path)
     {
@@ -215,6 +218,7 @@ ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
 	MAP_OR_FAIL(pread);
 
 	const char *path = hvac_get_path(fd);
+	L4C_INFO("Pread - path: %s", path); 
 
 	if (path)
 	{                
@@ -267,6 +271,8 @@ ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
 	{
 		L4C_INFO("Read64 to file %s of size %ld",path,count);
 	}
+	L4C_INFO("read64 - path: %s", path); 
+
 
 	return __real_read64(fd,buf,count);
 }
@@ -282,6 +288,8 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 		L4C_ERR("Write to file %s of size %ld",path,count);
 		assert(false);
 	}
+	L4C_INFO("write - path: %s", path); 
+
 
 	return __real_write(fd, buf, count);
 }
@@ -317,6 +325,8 @@ ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
 	{
 		L4C_INFO("Readv to tracked file %s",path);
 	}
+	L4C_INFO("readv - path: %s", path); 
+
 
 	return __real_readv(fd, iov, iovcnt);
 
