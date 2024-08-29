@@ -28,11 +28,11 @@ int hvac_start_comm_server(void)
 
     /* Start the data mover before anything else */
     pthread_t hvac_data_mover_tid;
-   /*
+   
     if (pthread_create(&hvac_data_mover_tid, NULL, hvac_data_mover_fn, NULL) != 0){
 		L4C_FATAL("Failed to initialized mecury progress thread\n");
 	}
-    */
+   
 
 
 
