@@ -361,6 +361,7 @@ hvac_rpc_handler(hg_handle_t handle)
 
     if (hvac_rpc_state_p->in.offset == -1){
         readbytes = read(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
+        L4C_INFO("errno: %d", errno); 
         L4C_INFO("Server Rank %d : Read %ld bytes from file %s", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
 /*
 		if (readbytes < 0) {
