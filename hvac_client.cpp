@@ -196,7 +196,7 @@ ssize_t hvac_remote_read(int fd, void *buf, size_t count)
 	ssize_t bytes_read = -1;
 	hg_bool_t done = HG_FALSE;
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;	
 
 
 	/* sy: Determine the node failure by checking the timeout limit and failure flags.
@@ -233,17 +233,11 @@ ssize_t hvac_remote_read(int fd, void *buf, size_t count)
         hvac_rpc_state_p->cond = &cond;
         hvac_rpc_state_p->mutex = &mutex;
 
-        L4C_INFO("remote-read:b"); 
 		hvac_client_comm_gen_read_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
-        L4C_INFO("remote-read:c"); 
 		bytes_read = hvac_read_block(host, &done, &bytes_read, &cond, &mutex);		
-        L4C_INFO("remote-read:d"); 
 		if(bytes_read == -1){
-        L4C_INFO("remote-read:e1"); 
             fd_map.erase(fd);
-        L4C_INFO("remote-read:e2"); 
         }
-        L4C_INFO("remote-read:f"); 
 	}
 	/* Non-HVAC Reads come from base */
 	return bytes_read;

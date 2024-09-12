@@ -76,7 +76,7 @@ void logging_info(log_info_t *info, const char *type) {
 	const char *logdir = getenv("HVAC_LOG_DIR");
 	snprintf(log_filename, sizeof(log_filename), "%s/%s_node_%d.log", logdir, type, info->server_rank);
 
-//    snprintf(log_filename, sizeof(log_filename), "%s_node_%d.log", type, info->server_rank);
+//    snprintf(log_filename, sizeof(log_flename), "%s_node_%d.log", type, info->server_rank);
 
     log_file = fopen(log_filename, "a");
     if (log_file == NULL) {
@@ -319,7 +319,7 @@ hvac_rpc_handler(hg_handle_t handle)
 
     hvac_rpc_state_p->size = hvac_rpc_state_p->in.input_val;
     hvac_rpc_state_p->handle = handle;
-
+    
     /* register local target buffer for bulk access */
 
     hgi = HG_Get_info(handle);
@@ -363,6 +363,7 @@ hvac_rpc_handler(hg_handle_t handle)
         readbytes = read(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
         L4C_INFO("errno: %d", errno); 
         L4C_INFO("Server Rank %d : Read %ld bytes from file %s", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
+
 /*
 		if (readbytes < 0) {
             readbytes = read(hvac_rpc_state_p->in.localfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
@@ -389,7 +390,7 @@ hvac_rpc_handler(hg_handle_t handle)
 		if (readbytes < 0) { //sy: add
 			strncpy(log_info.expn, "Fail", sizeof(log_info.expn) - 1);
             log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-            logging_info(&log_info, "server");
+            // logging_info(&log_info, "server");
 /*
         const char* original_path = fd_to_path[hvac_rpc_state_p->in.accessfd].c_str();
         int original_fd = open(original_path, O_RDONLY);
@@ -477,7 +478,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     log_info.n_epoch = in.localfd;
     log_info.n_batch = -1;
     gettimeofday(&log_info.clocktime, NULL);
-    logging_info(&log_info, "server");
+    // logging_info(&log_info, "server");
 
 	strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
@@ -494,7 +495,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
 //    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
 	gettimeofday(&log_info.clocktime, NULL);
-    logging_info(&log_info, "server");
+    // logging_info(&log_info, "server");
     out.ret_status = open(redir_path.c_str(),O_RDONLY);  
 	gettimeofday(&log_info.clocktime, NULL);
     if (nvme_flag) {
@@ -504,7 +505,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
         strncpy(log_info.expn, "SPFSReceive", sizeof(log_info.expn) - 1);
         log_info.expn[sizeof(log_info.expn) - 1] = '\0';
     }
-    logging_info(&log_info, "server");
+    // logging_info(&log_info, "server");
 
     fd_to_path[out.ret_status] = in.path;  
     HG_Respond(handle,NULL,NULL,&out);
@@ -557,7 +558,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
     log_info.n_epoch = -1;
     log_info.n_batch = -1;
-    logging_info(&log_info, "server");
+    // logging_info(&log_info, "server");
 
 	gettimeofday(&log_info.clocktime, NULL);
 	strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
@@ -581,20 +582,20 @@ hvac_close_rpc_handler(hg_handle_t handle)
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add
 	if (nvme_flag) {
-		logging_info(&log_info, "server");
+		// logging_info(&log_info, "server");
 		strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
         log_info.expn[sizeof(log_info.expn) - 1] = '\0';
 	}		
 	else{
 		strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
         log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-		logging_info(&log_info, "server");
+		// logging_info(&log_info, "server");
         strncpy(log_info.expn, "SPFSReceive", sizeof(log_info.expn) - 1);
         log_info.expn[sizeof(log_info.expn) - 1] = '\0';
 
 	}	
 	log_info.clocktime = tmp_time;
-    logging_info(&log_info, "server");	
+    // logging_info(&log_info, "server");	
 	
 	fd_to_path.erase(in.fd);
     return (hg_return_t)ret;

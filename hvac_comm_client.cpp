@@ -105,7 +105,7 @@ hvac_open_cb(const struct hg_cb_info *info)
     log_info.n_epoch = hvac_open_state_p->local_fd;
     log_info.n_batch = -1;
 
-    logging_info(&log_info, "client");
+    // logging_info(&log_info, "client");
 
 
     HG_Free_output(info->info.forward.handle, &out);
@@ -186,7 +186,7 @@ hvac_read_cb(const struct hg_cb_info *info)
     log_info.n_batch = -1;
     gettimeofday(&log_info.clocktime, NULL);
 
-    logging_info(&log_info, "client");
+    // logging_info(&log_info, "client");
 
 	
    /* clean up resources consumed by this rpc */
@@ -340,7 +340,7 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
     log_info.n_batch = -1;
     gettimeofday(&log_info.clocktime, NULL);
 
-    logging_info(&log_info, "client");
+    // logging_info(&log_info, "client");
 
 
     ret = HG_Forward(handle, NULL, NULL, &in);
@@ -402,7 +402,7 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
 	log_info.n_batch = -1;
     gettimeofday(&log_info.clocktime, NULL);	
    
-	logging_info(&log_info, "client"); 
+	// logging_info(&log_info, "client"); 
 
 
 
@@ -434,31 +434,27 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
     /* set up state structure */
     hvac_rpc_state_p->size = count;
 
-    L4C_INFO("read_rpc: a11"); 
+
 
     /* This includes allocating a src buffer for bulk transfer */
     hvac_rpc_state_p->buffer = buffer;
     assert(hvac_rpc_state_p->buffer);
-    L4C_INFO("read_rpc: a12"); 
+
 	hvac_rpc_state_p->bulk_handle = HG_BULK_NULL;
 
-    L4C_INFO("read_rpc: a13"); 
     /* create create handle to represent this rpc operation */
     hvac_comm_create_handle(svr_addr, hvac_client_rpc_id, &(hvac_rpc_state_p->handle));
 
-    L4C_INFO("read_rpc: a2"); 
     /* register buffer for rdma/bulk access by server */
     hgi = HG_Get_info(hvac_rpc_state_p->handle);
     assert(hgi);
     ret = HG_Bulk_create(hgi->hg_class, 1, (void**) &(buffer),
        &(hvac_rpc_state_p->size), HG_BULK_WRITE_ONLY, &(in.bulk_handle));
-
-    L4C_INFO("read_rpc: a3"); 
+ 
     hvac_rpc_state_p->bulk_handle = in.bulk_handle;
     assert(ret == HG_SUCCESS);
 
-    L4C_INFO("read_rpc: a"); 
-
+    
 	hvac_rpc_state_p->local_fd = localfd; //sy: add
 	hvac_rpc_state_p->offset = offset; //sy: add
     /* Send rpc. Note that we are also transmitting the bulk handle in the
@@ -473,12 +469,10 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
 	hvac_rpc_state_p->svr_hash = svr_hash; //sy: add   
  
 	// sy: add - logging code
+    /*
     log_info_t log_info;
 	snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", localfd);
     strncpy(log_info.request, "read", sizeof(log_info.request));
-	
-    L4C_INFO("read_rpc: b");
-
 	char server_addr[128];
     size_t server_addr_str_size = sizeof(server_addr);
     ret = HG_Addr_to_string(hvac_comm_get_class(), server_addr, &server_addr_str_size, svr_addr);
@@ -495,15 +489,14 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
     gettimeofday(&log_info.clocktime, NULL);
 
     logging_info(&log_info, "client"); 
+    */
 
-
-    L4C_INFO("read_rpc: c"); 
     ret = HG_Forward(hvac_rpc_state_p->handle, hvac_read_cb, hvac_rpc_state_p, &in);
     assert(ret == 0);
 
     hvac_comm_free_addr(svr_addr);
 
-    L4C_INFO("read_rpc: d"); 
+    
     return;
 }
 
