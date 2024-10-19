@@ -361,9 +361,12 @@ hvac_rpc_handler(hg_handle_t handle)
 
     if (hvac_rpc_state_p->in.offset == -1){
         readbytes = read(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-        L4C_INFO("errno: %d", errno); 
-        L4C_INFO("Server Rank %d : Read %ld bytes from file %s", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
-
+        if (readbytes == -1)
+        {
+            L4C_INFO("errno: %d", errno); 
+        }
+        L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.accessfd);
+        
 /*
 		if (readbytes < 0) {
             readbytes = read(hvac_rpc_state_p->in.localfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
@@ -447,7 +450,9 @@ hvac_open_rpc_handler(hg_handle_t handle)
 	const struct hg_info *hgi;
 	int nvme_flag = 0;
 	
+    L4C_INFO("aaa"); 
     int ret = HG_Get_input(handle, &in);
+    L4C_INFO("bbb"); 
     assert(ret == 0);
     string redir_path = in.path;
 
@@ -493,8 +498,9 @@ hvac_open_rpc_handler(hg_handle_t handle)
         nvme_flag = 1;
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
-//    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
-	gettimeofday(&log_info.clocktime, NULL);
+    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
+
+    gettimeofday(&log_info.clocktime, NULL);
     // logging_info(&log_info, "server");
     out.ret_status = open(redir_path.c_str(),O_RDONLY);  
 	gettimeofday(&log_info.clocktime, NULL);

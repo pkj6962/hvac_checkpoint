@@ -128,7 +128,7 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 			L4C_INFO("Open64: Tracking file %s",pathname);
 		}
 		else{
-			L4C_INFO("Tracking %s failed", pathname); 
+            //L4C_INFO("Tracking %s failed", pathname); 
 		}
 	}
 
@@ -151,7 +151,7 @@ int WRAP_DECL(close)(int fd)
 //		L4C_INFO("Close to file %s",path);
 		hvac_remove_fd(fd);
 	}
-	L4C_INFO("Close - path: %s", path); 
+	//L4C_INFO("Close - path: %s", path); 
 
 
 	if ((ret = __real_close(fd)) != 0)
@@ -171,14 +171,14 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 	//remove me
     MAP_OR_FAIL(read);	
 	
-    L4C_INFO("read function: Im here"); 
+    //L4C_INFO("read function: Im here"); 
 
     const char *path = hvac_get_path(fd);
 
 
 	ret = hvac_remote_read(fd,buf,count);
 
-	L4C_INFO("Read - path: %s, ret: %d", path, ret); 
+    //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
 	
 	if (path)
     {

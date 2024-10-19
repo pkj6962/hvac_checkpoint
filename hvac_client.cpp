@@ -153,7 +153,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
         hvac_open_state_p->done = &done;
         hvac_open_state_p->cond = &cond;
         hvac_open_state_p->mutex = &mutex;	
-//		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
+		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
 		/*
         string hostname = hashRing->GetNode(fd_map[fd]);
 		int host = hashRing->ConvertHostToNumber(hostname);
@@ -172,12 +172,12 @@ bool hvac_track_file(const char *path, int flags, int fd)
 //				L4C_INFO("new host %d\n", host);
             }
         }
-    
+        */
 		hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
 		hvac_client_block(host, &done, &cond, &mutex);
-        */
+        
 	}
-    L4C_INFO("Hi! I'm readched here %d.", getpid()); 
+    //L4C_INFO("Hi! I'm readched here %d.", getpid()); 
 
 	return tracked;
 }
@@ -355,7 +355,7 @@ bool hvac_file_tracked(int fd)
 const char * hvac_get_path(int fd)
 {
 
-    L4C_INFO("fd: %d\n", fd); 
+    //L4C_INFO("fd: %d\n", fd); 
 	if (fd_map.empty()) { //sy: add
         return NULL;
     }

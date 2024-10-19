@@ -463,6 +463,10 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
     in.input_val = count;
     //Convert FD to remote FD
     in.accessfd = fd_redir_map[localfd];
+
+    
+    L4C_INFO("fd: %d %d", in.accessfd, localfd); 
+
 	in.localfd = localfd; //sy: add
     in.offset = offset;
   	in.client_rank = client_rank; //sy: add - for logging  	 

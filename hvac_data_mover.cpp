@@ -56,9 +56,13 @@ void *hvac_data_mover_fn(void *args)
             string filename = dirpath + string("/") + fs::path(local_list.front().c_str()).filename().string();
 
             try{
+                L4C_INFO("Data mover a");
             	fs::copy(local_list.front(), filename);
+                L4C_INFO("Data mover b");
 				pthread_mutex_lock(&path_map_mutex); //sy: add
+                L4C_INFO("Data mover c");
             	path_cache_map[local_list.front()] = filename;
+                L4C_INFO("Data mover d");
 				pthread_mutex_unlock(&path_map_mutex); //sy: add
 							
 	
