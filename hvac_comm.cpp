@@ -499,7 +499,8 @@ hvac_open_rpc_handler(hg_handle_t handle)
         nvme_flag = 1;
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
-    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
+    // L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
+    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, redir_path);    
 
     // gettimeofday(&log_info.clocktime, NULL);
     // logging_info(&log_info, "server");
