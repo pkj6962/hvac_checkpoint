@@ -115,7 +115,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
         std::string ppath = std::filesystem::canonical(path).parent_path();
 
         // Check if the file is for reading (existing HVAC_DATA_DIR tracking)
-        if ((flags & O_ACCMODE) == O_RDONLY) {
+        // if ((flags & O_ACCMODE) == O_RDONLY) {
             if (hvac_data_dir != NULL) {
                 std::string test = std::filesystem::canonical(hvac_data_dir);
                 if (ppath.find(test) != std::string::npos) {
@@ -128,7 +128,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
                 fd_map[fd] = std::filesystem::canonical(path);
                 tracked = true;
             }
-        }
+        // }
         // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
         // else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
         //     if (hvac_checkpoint_dir != NULL) {
