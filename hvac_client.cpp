@@ -104,7 +104,7 @@ void initialize_hash_ring(int serverCount, int vnodes) {
     failure_flags.resize(serverCount, false);
 }
 
-
+/*
 bool hvac_track_file(const char *path, int flags, int fd)
 {
     if (strstr(path, ".ports.cfg.") != NULL)
@@ -171,7 +171,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
     return tracked;
 }
-
+*/
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
 	if (strstr(path, ".ports.cfg.") != NULL)
