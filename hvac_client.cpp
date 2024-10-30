@@ -103,6 +103,7 @@ void initialize_hash_ring(int serverCount, int vnodes) {
 }
 
 // New version of HVAC_TRACK_FILE
+/*
 bool hvac_track_file(const char *path, int flags, int fd)
 {
     if (strstr(path, ".ports.cfg.") != NULL)
@@ -165,9 +166,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
         
         int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
 
-
-
-
 		hg_bool_t done = HG_FALSE;
 		pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -186,10 +184,10 @@ bool hvac_track_file(const char *path, int flags, int fd)
     return tracked;
 }
 
-
+*/
 
 // Old version of HVAC_TRACK_FILE 
-/*
+
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
 	if (strstr(path, ".ports.cfg.") != NULL)
@@ -282,7 +280,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
 	return tracked;
 }
-*/
+
 
 
 /*
