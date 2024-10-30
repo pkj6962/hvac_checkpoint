@@ -175,7 +175,9 @@ bool hvac_track_file(const char *path, int flags, int fd)
 		
         L4C_INFO("Remote open - Host %d", host);
         hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
-        hvac_client_block();
+		hvac_client_block(host, &done, &cond, &mutex);
+
+
     }
 
     return tracked;
