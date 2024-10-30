@@ -366,12 +366,11 @@ hvac_rpc_handler(hg_handle_t handle)
             L4C_INFO("errno: %d", errno); 
         }
 
-        char filename[256]; 
-        string fdpath = "/proc/self/fd/" + to_string(hvac_rpc_state_p->in.accessfd); 
-        readlink(fdpath.c_str(), filename, 255); 
-
-        // L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.accessfd);
-        L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank,readbytes, filename, hvac_rpc_state_p->in.accessfd);
+        // char filename[256]; 
+        // string fdpath = "/proc/self/fd/" + to_string(hvac_rpc_state_p->in.accessfd); 
+        // readlink(fdpath.c_str(), filename, 255); 
+        L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank,readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.accessfd);
+        // L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank,readbytes, filename, hvac_rpc_state_p->in.accessfd);
         
 /*
 		if (readbytes < 0) {

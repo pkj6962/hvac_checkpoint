@@ -46,7 +46,7 @@ static void __attribute__((constructor)) hvac_client_init()
     hvac_init_logging();
 
     char * hvac_data_dir_c = getenv("HVAC_DATA_DIR");
-	// char * hvac_checkpoint_dir_c = getenv("HVAC_CHECKPOINT_DIR"); 
+	char * hvac_checkpoint_dir_c = getenv("HVAC_CHECKPOINT_DIR"); 
 
     if (getenv("HVAC_SERVER_COUNT") != NULL)
     {
@@ -66,14 +66,12 @@ static void __attribute__((constructor)) hvac_client_init()
 		snprintf(hvac_data_dir, strlen(hvac_data_dir_c) + 1, "%s", hvac_data_dir_c);
     }
 
-
-	/*
 	if (hvac_checkpoint_dir_c != NULL)
 	{
 		hvac_checkpoint_dir = (char *)malloc(strlen(hvac_checkpoint_dir_c) + 1); 
 		snprintf(hvac_checkpoint_dir, strlen(hvac_checkpoint_dir_c)+1, "%s", hvac_checkpoint_dir_c); 
 	}
-	*/
+	
 
 
 
@@ -104,7 +102,7 @@ void initialize_hash_ring(int serverCount, int vnodes) {
     failure_flags.resize(serverCount, false);
 }
 
-/*
+// New version of HVAC_TRACK_FILE
 bool hvac_track_file(const char *path, int flags, int fd)
 {
     if (strstr(path, ".ports.cfg.") != NULL)
@@ -171,7 +169,11 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
     return tracked;
 }
-*/
+
+
+
+// Old version of HVAC_TRACK_FILE 
+/*
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
 	if (strstr(path, ".ports.cfg.") != NULL)
@@ -220,10 +222,10 @@ bool hvac_track_file(const char *path, int flags, int fd)
 	if (tracked){
 		if (!g_mercury_init){
 			hvac_init_comm(false);	
-			/* I think I only need to do this once */
+			// I think I only need to do this once 
 			hvac_client_comm_register_rpc();
 			g_mercury_init = true;
-			initialize_hash_ring(g_hvac_server_count, VIRTUAL_NODE_CNT);
+			// initialize_hash_ring(g_hvac_server_count, VIRTUAL_NODE_CNT);
 			const char *type = "client"; 
 			//const char *rank_str = getenv("HOROVOD_RANK");
 			//int client_rank = atoi(rank_str);
@@ -237,25 +239,25 @@ bool hvac_track_file(const char *path, int flags, int fd)
         hvac_open_state_p->mutex = &mutex;	
 		// hvac_open_state_p->flags = flags; 
 		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
-		/*
-        string hostname = hashRing->GetNode(fd_map[fd]);
-		int host = hashRing->ConvertHostToNumber(hostname);
-//		L4C_INFO("Remote open - Host %d", host);
-		{
-            std::lock_guard<std::mutex> lock(timeout_mutex);
+		
+//         string hostname = hashRing->GetNode(fd_map[fd]);
+// 		int host = hashRing->ConvertHostToNumber(hostname);
+// //		L4C_INFO("Remote open - Host %d", host);
+// 		{
+//             std::lock_guard<std::mutex> lock(timeout_mutex);
 			
-//			L4C_INFO("host %d\n", host);
-//			L4C_INFO("cnt %d\n",timeout_counters[host]);
-            if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
-                L4C_INFO("Host %d reached timeout limit, skipping", host);
-				hashRing->RemoveNode(hostname);
-				failure_flags[host] = true;
-				hostname = hashRing->GetNode(fd_map[fd]); // sy: Imediately directed to the new node
-                host = hashRing->ConvertHostToNumber(hostname);
-//				L4C_INFO("new host %d\n", host);
-            }
-        }
-        */
+// //			L4C_INFO("host %d\n", host);
+// //			L4C_INFO("cnt %d\n",timeout_counters[host]);
+//             if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
+//                 L4C_INFO("Host %d reached timeout limit, skipping", host);
+// 				hashRing->RemoveNode(hostname);
+// 				failure_flags[host] = true;
+// 				hostname = hashRing->GetNode(fd_map[fd]); // sy: Imediately directed to the new node
+//                 host = hashRing->ConvertHostToNumber(hostname);
+// //				L4C_INFO("new host %d\n", host);
+//             }
+//         }
+        
 		hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
 		hvac_client_block(host, &done, &cond, &mutex);
         
@@ -264,6 +266,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
 	return tracked;
 }
+*/
+
 
 /*
 ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
