@@ -142,6 +142,9 @@ bool hvac_track_file(const char *path, int flags, int fd)
         }
     } catch (...) {
         // Handle exceptions if path canonicalization fails
+        L4C_INFO("Tracking failed");
+
+
     }
 
     // Send RPC to tell the server to open the file 
