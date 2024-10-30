@@ -162,6 +162,12 @@ bool hvac_track_file(const char *path, int flags, int fd)
         
         int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
 
+
+
+
+		hg_bool_t done = HG_FALSE;
+		pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 		hvac_open_state_t *hvac_open_state_p = (hvac_open_state_t *)malloc(sizeof(hvac_open_state_t));
         hvac_open_state_p->done = &done;
         hvac_open_state_p->cond = &cond;
