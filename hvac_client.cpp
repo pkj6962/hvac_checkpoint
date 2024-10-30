@@ -147,13 +147,13 @@ bool hvac_track_file(const char *path, int flags, int fd)
     // Send RPC to tell the server to open the file 
     if (tracked) {
         if (!g_mercury_init) {
-            char * rank_str = getenv("PMI_RANK"); 
-            if (rank_str == NULL)
-                L4C_INFO("Rank Before init: NULL");
-            else {
-                client_rank = atoi(rank_str); 
-                L4C_INFO("Rank Before init: %d", client_rank);
-            }		
+            // char * rank_str = getenv("PMI_RANK"); 
+            // if (rank_str == NULL)
+            //     L4C_INFO("Rank Before init: NULL");
+            // else {
+            //     client_rank = atoi(rank_str); 
+            //     L4C_INFO("Rank Before init: %d", client_rank);
+            // }		
 
             hvac_init_comm(false);	
             hvac_client_comm_register_rpc();
