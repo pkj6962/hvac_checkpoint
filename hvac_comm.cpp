@@ -500,7 +500,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
     // L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
-    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, redir_path);    
+    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, redir_path.c_str());    
 
     // gettimeofday(&log_info.clocktime, NULL);
     // logging_info(&log_info, "server");
