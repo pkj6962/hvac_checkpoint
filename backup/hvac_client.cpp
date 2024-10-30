@@ -75,6 +75,8 @@ static void __attribute((destructor)) hvac_client_shutdown()
     hvac_shutdown_comm();
 }
 
+// It is only called on OPEN wrappers.
+// FD is stored in FD_MAP when the file PATH is in HVAC_DATA_DIR.
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
         if (strstr(path, ".ports.cfg.") != NULL)
@@ -109,6 +111,12 @@ bool hvac_track_file(const char *path, int flags, int fd)
 			fd_map[fd] = std::filesystem::canonical(path);
 			tracked = true;
 		}
+	
+
+
+
+
+
 	} catch (...)
 	{
 		//Need to do something here

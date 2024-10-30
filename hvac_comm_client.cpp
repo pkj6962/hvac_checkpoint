@@ -97,13 +97,13 @@ hvac_open_cb(const struct hg_cb_info *info)
         L4C_DEBUG("Failed to get client address info\n");
     }
 
-	strncpy(log_info.filepath, hvac_open_state_p->filepath, sizeof(log_info.filepath));
-    strncpy(log_info.request, "open", sizeof(log_info.request));
-    log_info.client_rank = client_rank;
-    log_info.server_rank = hvac_open_state_p->svr_hash;
-    strncpy(log_info.expn, "CReceive", sizeof(log_info.expn));
-    log_info.n_epoch = hvac_open_state_p->local_fd;
-    log_info.n_batch = -1;
+	// strncpy(log_info.filepath, hvac_open_state_p->filepath, sizeof(log_info.filepath));
+    // strncpy(log_info.request, "open", sizeof(log_info.request));
+    // log_info.client_rank = client_rank;
+    // log_info.server_rank = hvac_open_state_p->svr_hash;
+    // strncpy(log_info.expn, "CReceive", sizeof(log_info.expn));
+    // log_info.n_epoch = hvac_open_state_p->local_fd;
+    // log_info.n_batch = -1;
 
     // logging_info(&log_info, "client");
 
@@ -122,6 +122,10 @@ hvac_open_cb(const struct hg_cb_info *info)
 
     return HG_SUCCESS;
 }
+
+
+
+
 
 /* callback triggered upon receipt of rpc response */
 /* In this case there is no response since that call was response less */
@@ -145,7 +149,7 @@ hvac_read_cb(const struct hg_cb_info *info)
 	else{
     /* decode response */
     	ret = HG_Get_output(info->info.forward.handle, &out);
-		gettimeofday(&log_info.clocktime, NULL);
+		//gettimeofday(&log_info.clocktime, NULL);
 		if (ret != HG_SUCCESS) {
     		L4C_INFO("Failed to get output: %s", HG_Error_to_string(ret));				
    		}
@@ -154,7 +158,6 @@ hvac_read_cb(const struct hg_cb_info *info)
 //			L4C_INFO("out.ret %d\n", out.ret);
 			if (out.ret < 0) {
             	L4C_INFO("Server-side read failed with result: %zd", out.ret);
-
 			}	
  	   		ret = HG_Free_output(info->info.forward.handle, &out);
 //			ret = HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
@@ -163,33 +166,9 @@ hvac_read_cb(const struct hg_cb_info *info)
 //			return HG_FAULT;			
 			assert(ret == HG_SUCCESS);
 		}
-	} 
-
-	char server_addr[128];
-    char server_ip[128];
-	hgi = HG_Get_info(info->info.forward.handle);
-    if (hgi) {
-		hg_size_t server_addr_str_size = sizeof(server_addr);
-        HG_Addr_to_string(hgi->hg_class, server_addr, &server_addr_str_size, hgi->addr);
-		extract_ip_portion(server_addr, server_ip, sizeof(server_ip));
-    	log_info.flag = (strcmp(server_ip, client_address) == 0) ? 1 : 0;
-    } else {
-        L4C_DEBUG("Failed to get client address info\n");
-    }
-
-	snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", hvac_rpc_state_p->local_fd);
-    strncpy(log_info.request, "read", sizeof(log_info.request));
-    log_info.client_rank = client_rank;
-    log_info.server_rank = hvac_rpc_state_p->svr_hash;
-    strncpy(log_info.expn, "CReceive", sizeof(log_info.expn));
-    log_info.n_epoch = -1;
-    log_info.n_batch = -1;
-    gettimeofday(&log_info.clocktime, NULL);
-
-    // logging_info(&log_info, "client");
-
-	
+	} 	
    /* clean up resources consumed by this rpc */
+
     ret = HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
 	assert(ret == HG_SUCCESS);
 //	L4C_INFO("INFO: Freeing Bulk Handle"); //Does this deregister memory?
@@ -197,7 +176,6 @@ hvac_read_cb(const struct hg_cb_info *info)
 	ret = HG_Destroy(info->info.forward.handle);
 	assert(ret == HG_SUCCESS);
     
-	
     /* signal to main() that we are done */
 	// sy: modified logic
 	pthread_mutex_lock(hvac_rpc_state_p->mutex);
@@ -383,29 +361,10 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
 	hvac_open_state_p->filepath[sizeof(hvac_open_state_p->filepath) - 1] = '\0'; // Ensure null termination
 	hvac_open_state_p->svr_hash = svr_hash; 
     
-	log_info_t log_info;
-    strncpy(log_info.filepath, path.c_str(), sizeof(log_info.filepath));
-    strncpy(log_info.request, "open", sizeof(log_info.request));
-	
 	char server_addr[128];
     size_t server_addr_str_size = sizeof(server_addr);
     ret = HG_Addr_to_string(hvac_comm_get_class(), server_addr, &server_addr_str_size, svr_addr);
-    char server_ip[128];
-    extract_ip_portion(server_addr, server_ip, sizeof(server_ip));
-    log_info.flag = (strcmp(client_address, server_ip) == 0) ? 1 : 0;
-
-
-    log_info.client_rank = client_rank;
-    log_info.server_rank = svr_hash;  
-    strncpy(log_info.expn, "CRequest", sizeof(log_info.expn));
-	log_info.n_epoch = fd;
-	log_info.n_batch = -1;
-    gettimeofday(&log_info.clocktime, NULL);	
-   
-	// logging_info(&log_info, "client"); 
-
-
-
+    
 
     ret = HG_Forward(handle, hvac_open_cb, hvac_open_state_p, &in);
     assert(ret == 0);
@@ -416,6 +375,48 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
     return;
 
 }
+
+/*
+void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset, hvac_rpc_state_client *hvac_rpc_state_p)
+{
+	hg_addr_t svr_addr; 
+	hvac_rpc_in_t in;
+	const struct hg_info *hgi; 
+	int ret; 
+
+	svr_addr = hvac_client_comm_lookup_addr(svr_hash);
+	
+	hvac_rpc_state_p->size = count; 
+	hvac_rpc_state_p->offset = offset;
+	hvac_rpc_state_p->localfd = localfd; 
+	hvac_rpc_state_p->buffer = buffer; 
+	assert(hvac_rpc_state_p->buffer);
+
+	hvac_rpc_state_p->bulk_handle = HG_BULK_NULL; 
+	
+	hvac_comm_create_handle(svr_addr, hvac_write_client_rpc_id, &(hvac_rpc_state_p->handle)); 
+	hgi = HG_Get_info(hvac_rpc_state_p->handle);
+	assert(hgi); 
+	ret = HG_Bulk_create(hgi->hg_class, 1, (void**)&buffer, &(hvac_rpc_state_p->size), HG_BULK_READ_ONLY, &(in.bulk_handle)); 
+
+	assert(ret == HG_SUCCESS); 
+	hvac_rpc_state_p->bulk_handle = in.bulk_handle;
+
+
+	in.input_val = count;
+	in.accesssfd = fd_redir_map[localfd]; 
+	in.localfd = localfd; 
+	in.offset = offset; 
+	in.client_rank = client_rank; 
+	hvac_rpc_state_p->svr_hash = svr_hash; 
+
+
+	ret = HG_Forward(hvac_rpc_state_p->handle, hvac_write_cb, hvac_rpc_state_p, &in); 
+	assert(ret == 0);
+
+	hvac_comm_free_addr(svr_addr); 
+}
+*/
 
 void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p)
 {

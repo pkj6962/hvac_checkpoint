@@ -163,6 +163,36 @@ int WRAP_DECL(close)(int fd)
 	return ret;
 }
 
+/*
+ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
+{
+	int ret = -1;
+	
+	//remove me
+    MAP_OR_FAIL(read);	
+	
+    const char *path = hvac_get_path(fd);
+
+	ret = hvac_remote_read(fd,buf,count);
+
+	if (path)
+    {
+        L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
+    }
+	
+	if (ret < 0)
+	{
+		ret = __real_read(fd,buf,count);	
+	}
+		
+    return ret;
+}
+
+*/
+
+
+
+
 
 ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 {
@@ -171,10 +201,7 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 	//remove me
     MAP_OR_FAIL(read);	
 	
-    //L4C_INFO("read function: Im here"); 
-
     const char *path = hvac_get_path(fd);
-
 
 	ret = hvac_remote_read(fd,buf,count);
 

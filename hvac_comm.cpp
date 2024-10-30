@@ -450,9 +450,9 @@ hvac_open_rpc_handler(hg_handle_t handle)
 	const struct hg_info *hgi;
 	int nvme_flag = 0;
 	
-    L4C_INFO("aaa"); 
+    // L4C_INFO("aaa"); 
     int ret = HG_Get_input(handle, &in);
-    L4C_INFO("bbb"); 
+    // L4C_INFO("bbb"); 
     assert(ret == 0);
     string redir_path = in.path;
 
@@ -462,33 +462,34 @@ hvac_open_rpc_handler(hg_handle_t handle)
         L4C_DEBUG("HG_Get_info failed\n");
         return (hg_return_t)ret;
     }
-	log_info_t log_info;
-    strncpy(log_info.filepath, in.path, sizeof(log_info.filepath) - 1);
-    log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
-    strncpy(log_info.request, "open", sizeof(log_info.request) - 1);
-    log_info.request[sizeof(log_info.request) - 1] = '\0';
+	// log_info_t log_info;
+    // strncpy(log_info.filepath, in.path, sizeof(log_info.filepath) - 1);
+    // log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
+    // strncpy(log_info.request, "open", sizeof(log_info.request) - 1);
+    // log_info.request[sizeof(log_info.request) - 1] = '\0';
 
-	char client_addr_str[128];
-    size_t client_addr_str_size = sizeof(client_addr_str);
-    ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
-    char client_ip[128];
-    extract_ip_portion(client_addr_str, client_ip, sizeof(client_ip));
+	// char client_addr_str[128];
+    // size_t client_addr_str_size = sizeof(client_addr_str);
+    // ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
+    // char client_ip[128];
+    // extract_ip_portion(client_addr_str, client_ip, sizeof(client_ip));
 
-    log_info.flag = (strcmp(server_addr_str, client_ip) == 0) ? 1 : 0;
+    // log_info.flag = (strcmp(server_addr_str, client_ip) == 0) ? 1 : 0;
 	
-    log_info.client_rank = in.client_rank;
-    log_info.server_rank = server_rank;
-    strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
-    log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    log_info.n_epoch = in.localfd;
-    log_info.n_batch = -1;
-    gettimeofday(&log_info.clocktime, NULL);
-    // logging_info(&log_info, "server");
+    // log_info.client_rank = in.client_rank;
+    // log_info.server_rank = server_rank;
+    // strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
+    // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+    // log_info.n_epoch = in.localfd;
+    // log_info.n_batch = -1;
+    // gettimeofday(&log_info.clocktime, NULL);
+    // // logging_info(&log_info, "server");
 
-	strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
-    log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+	// strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
+    // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
 	
 	pthread_mutex_lock(&path_map_mutex); //sy: add
+    // PATH_CACHE_MAP stores Path to NVMe Cache if exists. 
     if (path_cache_map.find(redir_path) != path_cache_map.end())
     {
    //     L4C_INFO("Server Rank %d : Successful Redirection %s to %s", server_rank, redir_path.c_str(), path_cache_map[redir_path].c_str());
@@ -500,17 +501,17 @@ hvac_open_rpc_handler(hg_handle_t handle)
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
     L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
 
-    gettimeofday(&log_info.clocktime, NULL);
+    // gettimeofday(&log_info.clocktime, NULL);
     // logging_info(&log_info, "server");
     out.ret_status = open(redir_path.c_str(),O_RDONLY);  
-	gettimeofday(&log_info.clocktime, NULL);
-    if (nvme_flag) {
-        strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
-        log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    } else {
-        strncpy(log_info.expn, "SPFSReceive", sizeof(log_info.expn) - 1);
-        log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    }
+	// gettimeofday(&log_info.clocktime, NULL);
+    // if (nvme_flag) {
+    //     strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
+    //     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+    // } else {
+    //     strncpy(log_info.expn, "SPFSReceive", sizeof(log_info.expn) - 1);
+    //     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+    // }
     // logging_info(&log_info, "server");
 
     fd_to_path[out.ret_status] = in.path;  

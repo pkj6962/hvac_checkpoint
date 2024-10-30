@@ -23,6 +23,7 @@ bool g_mercury_init=false;
 
 uint32_t g_hvac_server_count = 0;
 char *hvac_data_dir = NULL;
+char *hvac_checkpoint_dir = NULL; 
 
 pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -45,6 +46,7 @@ static void __attribute__((constructor)) hvac_client_init()
     hvac_init_logging();
 
     char * hvac_data_dir_c = getenv("HVAC_DATA_DIR");
+	// char * hvac_checkpoint_dir_c = getenv("HVAC_CHECKPOINT_DIR"); 
 
     if (getenv("HVAC_SERVER_COUNT") != NULL)
     {
@@ -63,6 +65,18 @@ static void __attribute__((constructor)) hvac_client_init()
 		hvac_data_dir = (char *)malloc(strlen(hvac_data_dir_c) + 1);
 		snprintf(hvac_data_dir, strlen(hvac_data_dir_c) + 1, "%s", hvac_data_dir_c);
     }
+
+
+	/*
+	if (hvac_checkpoint_dir_c != NULL)
+	{
+		hvac_checkpoint_dir = (char *)malloc(strlen(hvac_checkpoint_dir_c) + 1); 
+		snprintf(hvac_checkpoint_dir, strlen(hvac_checkpoint_dir_c)+1, "%s", hvac_checkpoint_dir_c); 
+	}
+	*/
+
+
+
     
 	/* sy: add */
 	initialize_hash_ring(g_hvac_server_count, VIRTUAL_NODE_CNT);
@@ -90,12 +104,80 @@ void initialize_hash_ring(int serverCount, int vnodes) {
     failure_flags.resize(serverCount, false);
 }
 
+
+bool hvac_track_file(const char *path, int flags, int fd)
+{
+    if (strstr(path, ".ports.cfg.") != NULL)
+    {
+        return false;
+    }
+    
+    bool tracked = false;
+    try {
+        std::string ppath = std::filesystem::canonical(path).parent_path();
+
+        // Check if the file is for reading (existing HVAC_DATA_DIR tracking)
+        if ((flags & O_ACCMODE) == O_RDONLY) {
+            if (hvac_data_dir != NULL) {
+                std::string test = std::filesystem::canonical(hvac_data_dir);
+                if (ppath.find(test) != std::string::npos) {
+                    L4C_INFO("Tracking used HVAC_DATA_DIR file %s", path);
+                    fd_map[fd] = std::filesystem::canonical(path);
+                    tracked = true;
+                }
+            } else if (ppath == std::filesystem::current_path()) {
+                L4C_INFO("Tracking used CWD file %s", path);
+                fd_map[fd] = std::filesystem::canonical(path);
+                tracked = true;
+            }
+        }
+        // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
+        else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
+            if (hvac_checkpoint_dir != NULL) {
+                std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
+                if (ppath.find(test) != std::string::npos) {
+                    L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
+                    fd_map[fd] = std::filesystem::canonical(path);
+                    tracked = true;
+                }
+            }
+        }
+    } catch (...) {
+        // Handle exceptions if path canonicalization fails
+    }
+
+    // Send RPC to tell the server to open the file 
+    if (tracked) {
+        if (!g_mercury_init) {
+            char * rank_str = getenv("PMI_RANK"); 
+            if (rank_str == NULL)
+                L4C_INFO("Rank Before init: NULL");
+            else {
+                client_rank = atoi(rank_str); 
+                L4C_INFO("Rank Before init: %d", client_rank);
+            }		
+
+            hvac_init_comm(false);	
+            hvac_client_comm_register_rpc();
+            g_mercury_init = true;
+        }
+        
+        int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
+
+        L4C_INFO("Remote open - Host %d", host);
+        hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd);
+        hvac_client_block();
+    }
+
+    return tracked;
+}
+
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
-        if (strstr(path, ".ports.cfg.") != NULL)
-        {
-            return false;
-        }
+	if (strstr(path, ".ports.cfg.") != NULL)
+	{
+		return false;
+	}
 	//Always back out of RDONLY
 	bool tracked = false;
 	if ((flags & O_ACCMODE) == O_WRONLY) {
@@ -153,6 +235,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
         hvac_open_state_p->done = &done;
         hvac_open_state_p->cond = &cond;
         hvac_open_state_p->mutex = &mutex;	
+		// hvac_open_state_p->flags = flags; 
 		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
 		/*
         string hostname = hashRing->GetNode(fd_map[fd]);
@@ -181,6 +264,50 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
 	return tracked;
 }
+
+/*
+ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
+{
+    ssize_t bytes_written = -1;
+	hg_bool_t done = HG_FALSE; 
+	pthread_cond_t cond = PTHREAD_COND_INITIALIZER; 
+	pthread_mutex_t mutex = PTHREAD_MUTEX_INITALIZER; 
+
+    if (hvac_file_tracked(fd)) {
+		// TODO: It should be changed so that the client sends requests to the local server. 
+        // Determine which server to communicate with based on the file descriptor.
+
+		
+		//const char *rank_str = getenv("PMI_RANK");
+		//int client_rank = atoi(rank_str);
+		//int host = client_rank; 
+		
+        int host = hash<string>{}(fd_map[fd]) % g_hvac_server_count;
+        L4C_INFO("NVMe buffering(write) - Host %d", host);
+
+		hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client*)malloc(sizeof(hvac_rpc_state_t_client)); 
+		hvac_rpc_state_p->bytes_read = &bytes_written; 
+		hvac_rpc_state_p->done = &done; 
+		hvac_rpc_state_p->cond = &cond; 
+		hvac_rpc_state_p->mutex = &mutex; 
+
+        // Generate the write RPC request.
+        hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1);
+
+        // Wait for the server to process the write request.
+        bytes_written = hvac_write_block();
+
+        return bytes_written; // Return the number of bytes written or -1 if an error occurred.
+    }
+
+    // Non-HVAC Writes should return -1.
+    return bytes_written;
+}
+
+*/
+
+
+
 
 /* Need to clean this up - in theory the RPC should time out if the request hasn't been serviced we'll go to the file-system?
  * Maybe not - we'll roll to another server.

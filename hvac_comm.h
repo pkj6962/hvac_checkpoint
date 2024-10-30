@@ -29,6 +29,7 @@ struct hvac_rpc_state_t_client {
     int local_fd; //sy: add
     int offset; //sy: add
     ssize_t *bytes_read; //sy: add
+    ssize_t *byres_written; // jh: add 
     hg_bool_t *done; //sy: add
     pthread_cond_t *cond; //sy: add
     pthread_mutex_t *mutex; //sy: add

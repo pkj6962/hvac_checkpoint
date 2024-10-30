@@ -183,6 +183,43 @@ void hvac_comm_list_addr()
 
 
 /* callback triggered upon completion of bulk transfer */
+/*
+static hg_return_t
+hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
+{
+
+    struct hvac_rpc_state *hvac_rpc_state_p = (struct hvac_rpc_state*)info->arg;
+	int ret; 
+	hvac_rpc_out_t out;
+	ssize_t writebytes; 
+
+    assert(info->ret == 0); 
+
+	if (hvac_rpc_state_p->in.offset == -1)
+	{
+		writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size); 
+		L4C_DEBUG("Server rank %d: Wrote %lld bytes to the file %s", server_rank, writebytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str()); 
+	}
+	else{
+		writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->offset); 
+		L4C_DEBUG("Server rank %d: Wrote %lld bytes to the file %s", server_rank, writebytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
+	}
+	out.ret = writebytes;
+
+    ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out); 
+	assert(ret == HG_SUCCESS); 
+
+	HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
+	L4C_INFO("Info server: Freeing Bulk Handle"); 
+	HG_Destroy(hvac_rpc_state_p->handle); 
+	free(hvac_rpc_state_p->buffer);
+	free(hvac_rpc_state_p); 
+}
+
+*/
+
+
+/* callback triggered upon completion of bulk transfer */
 static hg_return_t
 hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 {
@@ -205,6 +242,40 @@ hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
     return (hg_return_t)0;
 }
 
+/*
+static hg_return_t
+hvac_write_rpc_handler(hg_handle_t handle)
+{
+	int ret; 
+	struct hvac_rpc_state * hvac_rpc_state_p;
+	const struct hg_info *hgi; 
+	ssize_t writebytes;
+
+	hvac_rpc_state_p = (struct hvac_rpc_state*)malloc(sizeof(*hvac_rpc_state_p)); 
+
+	HG_Get_input(handle, &hvac_rpc_state_p->in); 
+
+	//hvc_rpc_state_p->buffer = calloc(1, hvac_rpc_state_p->in.input_val); 
+	//assert(hvac_rpc_state_p->buffer);
+	hvac_rpc_state_p->size = hvac_rpc_state_p->in.input_val; 
+	hvac_rpc_state_p->handle = handle; 
+
+	hgi = HG_Get_info(handle); 
+	assert(hgi); 
+	
+
+	ret = HG_Bulk_create(hgi->hg_class, 1, &hvac_rpc_state_p->buffer,
+		&hvac_rpc_state_p->size, HG_BULK_WRITE_ONLY, &hvac_rpc_state_p->bulk_handle);
+	assert(ret == 0); 
+
+	hvac_rpc_out_t out; 
+
+	ret = HG_Bulk_transfer(hgi->context, hvac_write_rpc_handler_bulk_cb, hvac_rpc_staet_p, HG_BULK_PULL, hgi->addr, hvac_rpc_state-p->in.bulk_handle, 0, hvac_rpc_state_p->bulk_handle, 0, hvac_rpc_state_p->size, HG_OP_ID_IGNORE); 
+	assert(ret == 0); 
+
+	return ret; 
+}
+*/
 
 
 static hg_return_t
@@ -221,16 +292,14 @@ hvac_rpc_handler(hg_handle_t handle)
     HG_Get_input(handle, &hvac_rpc_state_p->in);   
     
     /* This includes allocating a target buffer for bulk transfer */
+    // Server side buffer 
     hvac_rpc_state_p->buffer = calloc(1, hvac_rpc_state_p->in.input_val);
     assert(hvac_rpc_state_p->buffer);
 
     hvac_rpc_state_p->size = hvac_rpc_state_p->in.input_val;
     hvac_rpc_state_p->handle = handle;
 
-
-
     /* register local target buffer for bulk access */
-
     hgi = HG_Get_info(handle);
     assert(hgi);
     ret = HG_Bulk_create(hgi->hg_class, 1, &hvac_rpc_state_p->buffer,
@@ -339,6 +408,19 @@ hvac_rpc_register(void)
 
     return tmp;
 }
+/*
+hg_id_t
+hvac_write_rpc_register(void)
+{
+    hg_id_t tmp;
+
+    tmp = MERCURY_REGISTER(
+        hg_class, "hvac_write_rpc", hvac_rpc_in_t, hvac_rpc_out_t, hvac_write_rpc_handler);
+
+    return tmp;
+}
+*/
+
 
 hg_id_t
 hvac_open_rpc_register(void)
