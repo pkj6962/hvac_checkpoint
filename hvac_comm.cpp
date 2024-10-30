@@ -500,11 +500,13 @@ hvac_open_rpc_handler(hg_handle_t handle)
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
     // L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
-    L4C_INFO("Server Rank %d : Successful Open %s", server_rank, redir_path.c_str());    
+    // L4C_INFO("Server Rank %d : Successful Open %s", server_rank, redir_path.c_str());    
 
     // gettimeofday(&log_info.clocktime, NULL);
     // logging_info(&log_info, "server");
     out.ret_status = open(redir_path.c_str(),O_RDONLY);  
+    L4C_INFO("Server Rank %d : Successful Open %s %d", server_rank, redir_path.c_str(), out.ret_status);    
+
 	// gettimeofday(&log_info.clocktime, NULL);
     // if (nvme_flag) {
     //     strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
