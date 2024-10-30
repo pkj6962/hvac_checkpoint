@@ -130,16 +130,16 @@ bool hvac_track_file(const char *path, int flags, int fd)
             }
         }
         // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
-        else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
-            if (hvac_checkpoint_dir != NULL) {
-                std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
-                if (ppath.find(test) != std::string::npos) {
-                    L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
-                    fd_map[fd] = std::filesystem::canonical(path);
-                    tracked = true;
-                }
-            }
-        }
+        // else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
+        //     if (hvac_checkpoint_dir != NULL) {
+        //         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
+        //         if (ppath.find(test) != std::string::npos) {
+        //             L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
+        //             fd_map[fd] = std::filesystem::canonical(path);
+        //             tracked = true;
+        //         }
+        //     }
+        // }
     } catch (...) {
         // Handle exceptions if path canonicalization fails
         L4C_INFO("Tracking failed");
