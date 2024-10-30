@@ -202,7 +202,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 				tracked = true;
 			}		
 		}else if (ppath == std::filesystem::current_path()) {       
-//			L4C_INFO("Traacking used CWD file %s",path);
+			L4C_INFO("Traacking used CWD file %s",path);
 			fd_map[fd] = std::filesystem::canonical(path);
 			tracked = true;
 		}

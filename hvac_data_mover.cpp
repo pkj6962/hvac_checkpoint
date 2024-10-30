@@ -62,7 +62,7 @@ void *hvac_data_mover_fn(void *args)
 				pthread_mutex_lock(&path_map_mutex); //sy: add
                 L4C_INFO("Data mover c");
             	path_cache_map[local_list.front()] = filename;
-                L4C_INFO("Data mover d");
+                L4C_INFO("Data mover d: %s", filename);
 				pthread_mutex_unlock(&path_map_mutex); //sy: add
 							
 	
