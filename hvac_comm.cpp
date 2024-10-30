@@ -494,8 +494,8 @@ hvac_open_rpc_handler(hg_handle_t handle)
     {
    //     L4C_INFO("Server Rank %d : Successful Redirection %s to %s", server_rank, redir_path.c_str(), path_cache_map[redir_path].c_str());
         redir_path = path_cache_map[redir_path];
-		strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
-        log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+		// strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
+        // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
         nvme_flag = 1;
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
