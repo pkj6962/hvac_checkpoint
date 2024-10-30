@@ -31,7 +31,7 @@ void *hvac_data_mover_fn(void *args)
     }
 
     string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";    
-    L4C_INFO("nvmepath: %s", nvmepath);
+    L4C_INFO("nvmepath: %s", nvmepath.c_str());
 
 
     while (1) {
