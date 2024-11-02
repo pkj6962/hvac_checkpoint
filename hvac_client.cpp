@@ -105,7 +105,7 @@ void initialize_hash_ring(int serverCount, int vnodes) {
 }
 
 // New version of HVAC_TRACK_FILE
-/*
+
 bool hvac_track_file(const char *path, int flags, int fd)
 {
     if (strstr(path, ".ports.cfg.") != NULL)
@@ -137,18 +137,18 @@ bool hvac_track_file(const char *path, int flags, int fd)
                 fd_map[fd] = std::filesystem::canonical(path);
                 tracked = true;
             }
-        // }
-        // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
-        // else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
-        //     if (hvac_checkpoint_dir != NULL) {
-        //         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
-        //         if (ppath.find(test) != std::string::npos) {
-        //             L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
-        //             fd_map[fd] = std::filesystem::canonical(path);
-        //             tracked = true;
-        //         }
-        //     }
-        // }
+        }
+         //Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
+         else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
+             if (hvac_checkpoint_dir != NULL) {
+                 std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
+                 if (ppath.find(test) != std::string::npos) {
+                     L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
+                     fd_map[fd] = std::filesystem::canonical(path);
+                     tracked = true;
+                 }
+             }
+         }
     } catch (...) {
         // Handle exceptions if path canonicalization fails
         L4C_INFO("Process reached here"); 
@@ -179,15 +179,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
         hvac_open_state_p->cond = &cond;
         hvac_open_state_p->mutex = &mutex;	
         int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
-
-		hg_bool_t done = HG_FALSE;
-		pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-		hvac_open_state_t *hvac_open_state_p = (hvac_open_state_t *)malloc(sizeof(hvac_open_state_t));
-        hvac_open_state_p->done = &done;
-        hvac_open_state_p->cond = &cond;
-        hvac_open_state_p->mutex = &mutex;	
-		
         L4C_INFO("Remote open - Host %d", host);
     
         hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);

@@ -467,60 +467,26 @@ hvac_open_rpc_handler(hg_handle_t handle)
         L4C_DEBUG("HG_Get_info failed\n");
         return (hg_return_t)ret;
     }
-	// log_info_t log_info;
-    // strncpy(log_info.filepath, in.path, sizeof(log_info.filepath) - 1);
-    // log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
-    // strncpy(log_info.request, "open", sizeof(log_info.request) - 1);
-    // log_info.request[sizeof(log_info.request) - 1] = '\0';
-
-	// char client_addr_str[128];
-    // size_t client_addr_str_size = sizeof(client_addr_str);
-    // ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
-    // char client_ip[128];
-    // extract_ip_portion(client_addr_str, client_ip, sizeof(client_ip));
-
-    // log_info.flag = (strcmp(server_addr_str, client_ip) == 0) ? 1 : 0;
-	
-    // log_info.client_rank = in.client_rank;
-    // log_info.server_rank = server_rank;
-    // strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
-    // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    // log_info.n_epoch = in.localfd;
-    // log_info.n_batch = -1;
-    // gettimeofday(&log_info.clocktime, NULL);
-    // // logging_info(&log_info, "server");
-
-	// strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
-    // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
 	
 	pthread_mutex_lock(&path_map_mutex); //sy: add
+    
     // PATH_CACHE_MAP stores Path to NVMe Cache if exists. 
     if (path_cache_map.find(redir_path) != path_cache_map.end())
     {
-   //     L4C_INFO("Server Rank %d : Successful Redirection %s to %s", server_rank, redir_path.c_str(), path_cache_map[redir_path].c_str());
         redir_path = path_cache_map[redir_path];
-		// strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
-        // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
         nvme_flag = 1;
     }
-	pthread_mutex_unlock(&path_map_mutex); //sy: add	
-    // L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
-    // L4C_INFO("Server Rank %d : Successful Open %s", server_rank, redir_path.c_str());    
-
-    // gettimeofday(&log_info.clocktime, NULL);
+	
+    /*
+    // Need to add logic to decide the open mode 
+    // TODO: If This request is for write mode, then we will skip to open the file because we will keep data on memory data structure. 
+    */
     // logging_info(&log_info, "server");
+    
+    pthread_mutex_unlock(&path_map_mutex); //sy: add	
     out.ret_status = open(redir_path.c_str(),O_RDONLY);  
     L4C_INFO("Server Rank %d : Successful Open %s %d", server_rank, redir_path.c_str(), out.ret_status);    
 
-	// gettimeofday(&log_info.clocktime, NULL);
-    // if (nvme_flag) {
-    //     strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
-    //     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    // } else {
-    //     strncpy(log_info.expn, "SPFSReceive", sizeof(log_info.expn) - 1);
-    //     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    // }
-    // logging_info(&log_info, "server");
 
     fd_to_path[out.ret_status] = in.path;  
     HG_Respond(handle,NULL,NULL,&out);
@@ -541,7 +507,18 @@ hvac_close_rpc_handler(hg_handle_t handle)
     int ret = HG_Get_input(handle, &in);
     assert(ret == HG_SUCCESS);
 	gettimeofday(&log_info.clocktime, NULL);
- //   L4C_INFO("Closing File %d\n",in.fd);
+
+    
+
+
+    int flag = fcntl(in.fd, F_GETFL); 
+    int mode = flag & O_ACCMODE; 
+    L4C_INFO("Closing File %d | mode: %d \n",in.fd, mode);
+    
+    
+    
+    
+    //L4C_INFO("Closing File %d\n",in.fd);
     ret = close(in.fd);
 //    assert(ret == 0);
 //	out.done = ret;
@@ -590,6 +567,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     	log_info.expn[sizeof(log_info.expn) - 1] = '\0';
  //       L4C_INFO("Caching %s",fd_to_path[in.fd].c_str());
         pthread_mutex_lock(&data_mutex);
+        // TODO: File that was open in write mode should not be pushed into data_queue 
         data_queue.push(fd_to_path[in.fd]);
         pthread_cond_signal(&data_cond);
         pthread_mutex_unlock(&data_mutex);
