@@ -33,9 +33,7 @@ int hvac_start_comm_server(void)
 		L4C_FATAL("Failed to initialized mecury progress thread\n");
 	}
    
-
-
-
+   
     /* True means we're a listener */
     hvac_init_comm(true);
 

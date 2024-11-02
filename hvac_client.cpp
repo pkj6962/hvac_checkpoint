@@ -121,7 +121,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
                 std::string test = std::filesystem::canonical(hvac_data_dir);
                 if (ppath.find(test) != std::string::npos) {
                     L4C_INFO("Tracking used HVAC_DATA_DIR file %s", path);
-                    fd_map[fd] = std::filesystem::canonical(path);
+                    fd_map[fd] = std::fffilesystem::canonical(path);
                     tracked = true;
                 }
             } else if (ppath == std::filesystem::current_path()) {
@@ -187,7 +187,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
 */
 
 // Old version of HVAC_TRACK_FILE 
-
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
 	if (strstr(path, ".ports.cfg.") != NULL)
@@ -296,11 +295,10 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
         // Determine which server to communicate with based on the file descriptor.
 
 		
-		//const char *rank_str = getenv("PMI_RANK");
-		//int client_rank = atoi(rank_str);
-		//int host = client_rank; 
-		
-        int host = hash<string>{}(fd_map[fd]) % g_hvac_server_count;
+		const char *rank_str = getenv("PMI_RANK");
+		int client_rank = atoi(rank_str);
+		int host = client_rank; 
+        // int host = hash<string>{}(fd_map[fd]) % g_hvac_server_count;
         L4C_INFO("NVMe buffering(write) - Host %d", host);
 
 		hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client*)malloc(sizeof(hvac_rpc_state_t_client)); 

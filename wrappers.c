@@ -319,6 +319,28 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 
 	return __real_write(fd, buf, count);
 }
+/*
+ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) {
+    MAP_OR_FAIL(write);  // Resolves the real `write` function.
+
+    const char *path = hvac_get_path(fd);
+    if (path) {
+        L4C_INFO("Write to tracked file %s of size %ld", path, count);
+
+        // Handle caching logic here
+        ssize_t cached_write = hvac_cache_write(fd, buf, count);
+        if (cached_write > 0) {
+            return cached_write;  // Successfully written to cache
+        }
+    }
+
+    // If not cached or an error occurs, perform the real write
+    return __real_write(fd, buf, count);
+}
+*/
+
+
+
 
 off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
 {

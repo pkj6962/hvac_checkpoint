@@ -540,13 +540,15 @@ hvac_close_rpc_handler(hg_handle_t handle)
 
     int ret = HG_Get_input(handle, &in);
     assert(ret == HG_SUCCESS);
-	gettimeofday(&log_info.clocktime, NULL);
- //   L4C_INFO("Closing File %d\n",in.fd);
+
+        
+
+
+//   L4C_INFO("Closing File %d\n",in.fd);
     ret = close(in.fd);
 //    assert(ret == 0);
 //	out.done = ret;
 	
-
 	// sy: add - logging code
 	hgi = HG_Get_info(handle);
     if (!hgi) {
@@ -554,41 +556,11 @@ hvac_close_rpc_handler(hg_handle_t handle)
 		fd_to_path.erase(in.fd);
        	return (hg_return_t)ret;
 	}
-	snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", in.fd);    
-    strncpy(log_info.request, "close", sizeof(log_info.request) - 1);
-    log_info.request[sizeof(log_info.request) - 1] = '\0';
-
-
-	char client_addr_str[128];
-    size_t client_addr_str_size = sizeof(client_addr_str);
-    ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
-    char client_ip[128];
-    extract_ip_portion(client_addr_str, client_ip, sizeof(client_ip));
-
-    log_info.flag = (strcmp(server_addr_str, client_ip) == 0) ? 1 : 0;
-
-    log_info.client_rank = in.client_rank;
-    log_info.server_rank = server_rank;
-    strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
-    log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    log_info.n_epoch = -1;
-    log_info.n_batch = -1;
-    // logging_info(&log_info, "server");
-
-	gettimeofday(&log_info.clocktime, NULL);
-	strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
-    log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-
-
-
-    //Signal to the data mover to copy the file
 	
+    // Signal to the data mover to copy the file
 	pthread_mutex_lock(&path_map_mutex); //sy: add
     if (path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
     {
-		strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
-    	log_info.expn[sizeof(log_info.expn) - 1] = '\0';
- //       L4C_INFO("Caching %s",fd_to_path[in.fd].c_str());
         pthread_mutex_lock(&data_mutex);
         data_queue.push(fd_to_path[in.fd]);
         pthread_cond_signal(&data_cond);
@@ -596,21 +568,6 @@ hvac_close_rpc_handler(hg_handle_t handle)
 		nvme_flag = 1;
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add
-	if (nvme_flag) {
-		// logging_info(&log_info, "server");
-		strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
-        log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-	}		
-	else{
-		strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
-        log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-		// logging_info(&log_info, "server");
-        strncpy(log_info.expn, "SPFSReceive", sizeof(log_info.expn) - 1);
-        log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-
-	}	
-	log_info.clocktime = tmp_time;
-    // logging_info(&log_info, "server");	
 	
 	fd_to_path.erase(in.fd);
     return (hg_return_t)ret;

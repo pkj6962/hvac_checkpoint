@@ -71,7 +71,7 @@ void *hvac_data_mover_fn(void *args)
 	
             } catch (...)
             {
-                L4C_INFO("Failed to copy %s to %s\n",local_list.front().c_str(), filename);
+                L4C_INFO("Failed to copy %s to %s: %d %s\n",local_list.front().c_str(), filename.c_str(), errno, stderror(errno );
             }        
             local_list.pop();
         }
