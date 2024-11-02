@@ -149,7 +149,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
             }
         }
     } catch (...) {
-                    L4C_INFO("Tracking used HVAC_DATA_DIR file %s", path);
         // Handle exceptions if path canonicalization fails
         L4C_INFO("Process reached here"); 
     }
