@@ -66,6 +66,8 @@ static void __attribute__((constructor)) hvac_client_init()
 		snprintf(hvac_data_dir, strlen(hvac_data_dir_c) + 1, "%s", hvac_data_dir_c);
     }
 
+
+	
 	if (hvac_checkpoint_dir_c != NULL)
 	{
 		hvac_checkpoint_dir = (char *)malloc(strlen(hvac_checkpoint_dir_c) + 1); 
@@ -103,7 +105,7 @@ void initialize_hash_ring(int serverCount, int vnodes) {
 }
 
 // New version of HVAC_TRACK_FILE
-/*
+
 bool hvac_track_file(const char *path, int flags, int fd)
 {
     if (strstr(path, ".ports.cfg.") != NULL)
@@ -114,9 +116,14 @@ bool hvac_track_file(const char *path, int flags, int fd)
     bool tracked = false;
     try {
         std::string ppath = std::filesystem::canonical(path).parent_path();
+        L4C_INFO("path: %s", path); 
 
         // Check if the file is for reading (existing HVAC_DATA_DIR tracking)
-        // if ((flags & O_ACCMODE) == O_RDONLY) {
+        
+        int access_mode  = flags & O_ACCMODE ; 
+        L4C_INFO("mode: %d", access_mode);
+        if ((flags & O_ACCMODE) == O_RDONLY) {
+
             if (hvac_data_dir != NULL) {
                 std::string test = std::filesystem::canonical(hvac_data_dir);
                 if (ppath.find(test) != std::string::npos) {
@@ -129,24 +136,26 @@ bool hvac_track_file(const char *path, int flags, int fd)
                 fd_map[fd] = std::filesystem::canonical(path);
                 tracked = true;
             }
-        // }
-        // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
-        // else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
-        //     if (hvac_checkpoint_dir != NULL) {
-        //         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
-        //         if (ppath.find(test) != std::string::npos) {
-        //             L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
-        //             fd_map[fd] = std::filesystem::canonical(path);
-        //             tracked = true;
-        //         }
-        //     }
-        // }
+        }
+         //Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
+         else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR) {
+             if (hvac_checkpoint_dir != NULL) {
+                 std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
+                 if (ppath.find(test) != std::string::npos) {
+                     L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
+                     fd_map[fd] = std::filesystem::canonical(path);
+                     tracked = true;
+                 }
+             }
+         }
     } catch (...) {
         // Handle exceptions if path canonicalization fails
-        L4C_INFO("Tracking failed");
-
-
+        L4C_INFO("Process reached here"); 
     }
+    
+    hg_bool_t done = HG_FALSE;
+    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // Send RPC to tell the server to open the file 
     if (tracked) {
@@ -164,29 +173,22 @@ bool hvac_track_file(const char *path, int flags, int fd)
             g_mercury_init = true;
         }
         
-        int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
-
-		hg_bool_t done = HG_FALSE;
-		pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 		hvac_open_state_t *hvac_open_state_p = (hvac_open_state_t *)malloc(sizeof(hvac_open_state_t));
         hvac_open_state_p->done = &done;
         hvac_open_state_p->cond = &cond;
         hvac_open_state_p->mutex = &mutex;	
-		
+        int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
         L4C_INFO("Remote open - Host %d", host);
+    
         hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
 		hvac_client_block(host, &done, &cond, &mutex);
-
-
     }
 
     return tracked;
 }
 
-*/
 
-// Old version of HVAC_TRACK_FILE 
+/*
 bool hvac_track_file(const char *path, int flags, int fd)
 {       
 	if (strstr(path, ".ports.cfg.") != NULL)
@@ -235,7 +237,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 	if (tracked){
 		if (!g_mercury_init){
 			hvac_init_comm(false);	
-			// I think I only need to do this once 
+			//I think I only need to do this once 
 			hvac_client_comm_register_rpc();
 			g_mercury_init = true;
 			// initialize_hash_ring(g_hvac_server_count, VIRTUAL_NODE_CNT);
@@ -252,33 +254,33 @@ bool hvac_track_file(const char *path, int flags, int fd)
         hvac_open_state_p->mutex = &mutex;	
 		// hvac_open_state_p->flags = flags; 
 		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
-		
-//         string hostname = hashRing->GetNode(fd_map[fd]);
-// 		int host = hashRing->ConvertHostToNumber(hostname);
-// //		L4C_INFO("Remote open - Host %d", host);
-// 		{
-//             std::lock_guard<std::mutex> lock(timeout_mutex);
+        //string hostname = hashRing->GetNode(fd_map[fd]);
+		//int host = hashRing->ConvertHostToNumber(hostname);
+//		L4C_INFO("Remote open - Host %d", host);
+		//{
+        //    std::lock_guard<std::mutex> lock(timeout_mutex);
 			
-// //			L4C_INFO("host %d\n", host);
-// //			L4C_INFO("cnt %d\n",timeout_counters[host]);
-//             if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
-//                 L4C_INFO("Host %d reached timeout limit, skipping", host);
-// 				hashRing->RemoveNode(hostname);
-// 				failure_flags[host] = true;
-// 				hostname = hashRing->GetNode(fd_map[fd]); // sy: Imediately directed to the new node
-//                 host = hashRing->ConvertHostToNumber(hostname);
-// //				L4C_INFO("new host %d\n", host);
-//             }
-//         }
+//			L4C_INFO("host %d\n", host);
+//			L4C_INFO("cnt %d\n",timeout_counters[host]);
+          //  if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
+          //      L4C_INFO("Host %d reached timeout limit, skipping", host);
+		  //		hashRing->RemoveNode(hostname);
+		//		failure_flags[host] = true;
+		//		hostname = hashRing->GetNode(fd_map[fd]); // sy: Imediately directed to the new node
+          //      host = hashRing->ConvertHostToNumber(hostname);
+//				L4C_INFO("new host %d\n", host);
+         //   }
+        //}
         
 		hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
 		hvac_client_block(host, &done, &cond, &mutex);
         
 	}
-    //L4C_INFO("Hi! I'm readched here %d.", getpid()); 
+    L4C_INFO("Hi! I'm readched here %d.", getpid()); 
 
 	return tracked;
 }
+*/
 
 
 
@@ -466,9 +468,10 @@ ssize_t hvac_remote_lseek(int fd, int offset, int whence)
 
 void hvac_remote_close(int fd){
 	if (hvac_file_tracked(fd)){
-//		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
-		string hostname = hashRing->GetNode(fd_map[fd]);
-        int host = hashRing->ConvertHostToNumber(hostname);
+		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
+		/*
+        string hostname = hashRing->GetNode(fd_map[fd]);
+        host = hashRing->ConvertHostToNumber(hostname);
         {
             std::lock_guard<std::mutex> lock(timeout_mutex);
             if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
@@ -478,6 +481,7 @@ void hvac_remote_close(int fd){
 				return; // sy: skip further processing for this node
             }
         }
+        */
 		// sy: add
 		hvac_rpc_state_t_close *rpc_state = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));
     	rpc_state->done = false;
@@ -497,8 +501,13 @@ bool hvac_file_tracked(int fd)
 
 const char * hvac_get_path(int fd)
 {
+    
+    string path = "/proc/self/fd/" +  to_string(fd); 
+    char filepath[256]; 
+    ssize_t len = readlink(path.c_str(), filepath, sizeof(filepath)-1); 
+    filepath[len] = '\0'; 
 
-    //L4C_INFO("fd: %d\n", fd); 
+    L4C_INFO("fd on HVAC_GET_PATH: %d %s\n", fd, filepath); 
 	if (fd_map.empty()) { //sy: add
         return NULL;
     }

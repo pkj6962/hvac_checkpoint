@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "iosfwd": "cpp",
+        "filesystem": "cpp",
+        "chrono": "cpp",
+        "format": "cpp",
+        "queue": "cpp"
+    }
+}

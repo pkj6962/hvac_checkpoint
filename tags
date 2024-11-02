@@ -105,6 +105,7 @@ bulk_handle	backup/hvac_comm.cpp	/^    hg_bulk_t bulk_handle;$/;"	m	struct:hvac_
 bulk_handle	backup/hvac_comm_client.cpp	/^    hg_bulk_t bulk_handle;$/;"	m	struct:hvac_rpc_state	file:
 bulk_handle	hvac_comm.cpp	/^    hg_bulk_t bulk_handle;$/;"	m	struct:hvac_rpc_state	file:
 bulk_handle	hvac_comm.h	/^    hg_bulk_t bulk_handle;$/;"	m	struct:hvac_rpc_state_t_client
+byres_written	hvac_comm.h	/^    ssize_t *byres_written; \/\/ jh: add $/;"	m	struct:hvac_rpc_state_t_client
 bytes_read	hvac_comm.h	/^    ssize_t *bytes_read; \/\/sy: add$/;"	m	struct:hvac_rpc_state_t_client
 client_address	hvac_comm_client.cpp	/^char client_address[128];$/;"	v
 client_rank	hvac_comm.h	/^    int client_rank;$/;"	m	struct:__anon1
@@ -173,6 +174,7 @@ hg_class	hvac_server.cpp	/^	hg_class_t *hg_class;$/;"	m	struct:hvac_lookup_arg	f
 hg_context	backup/hvac_comm.cpp	/^static hg_context_t *hg_context = NULL;$/;"	v	file:
 hg_context	hvac_comm.cpp	/^static hg_context_t *hg_context = NULL;$/;"	v	file:
 host	hvac_comm.h	/^    uint32_t host;$/;"	m	struct:hvac_rpc_state_t_close
+hvac_checkpoint_dir	hvac_client.cpp	/^char *hvac_checkpoint_dir = NULL; $/;"	v
 hvac_client_block	backup/hvac_comm_client.cpp	/^void hvac_client_block()$/;"	f
 hvac_client_block	hvac_comm_client.cpp	/^void hvac_client_block(uint32_t host, hg_bool_t *done, pthread_cond_t *cond, pthread_mutex_t *mutex)$/;"	f
 hvac_client_close_id	backup/hvac_comm_client.cpp	/^static hg_id_t hvac_client_close_id;$/;"	v	file:
