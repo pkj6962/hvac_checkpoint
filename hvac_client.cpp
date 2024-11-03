@@ -313,10 +313,10 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 		hvac_rpc_state_p->mutex = &mutex; 
 
         // Generate the write RPC request.
-        // hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
+        hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
         // Wait for the server to process the write request.
-        // bytes_written = hvac_write_block(host, &done, &bytes_read, &cond, &mutex);
+        bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
 		if(bytes_written == -1){
             fd_map.erase(fd);
         }

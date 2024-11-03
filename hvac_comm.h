@@ -111,7 +111,7 @@ hg_context_t *hvac_comm_get_context();
 //Client
 void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, int offset, int whence);
 void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void* buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p);
-void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void* buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p);
+void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void* buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p);
 void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_open_state_t *hvac_open_state_p);
 void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_close* rpc_state);
 hg_addr_t hvac_client_comm_lookup_addr(int rank);
