@@ -326,11 +326,6 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     return bytes_written;
 }
 
-
-
-
-
-
 /* Need to clean this up - in theory the RPC should time out if the request hasn't been serviced we'll go to the file-system?
  * Maybe not - we'll roll to another server.
  * For now we return true to keep the good path happy

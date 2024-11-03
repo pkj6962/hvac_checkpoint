@@ -4,6 +4,7 @@
         "filesystem": "cpp",
         "chrono": "cpp",
         "format": "cpp",
-        "queue": "cpp"
+        "queue": "cpp",
+        "map": "cpp"
     }
 }
