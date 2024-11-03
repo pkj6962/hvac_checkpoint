@@ -311,6 +311,9 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 		L4C_DEBUG("Server rank %d: Wrote %lld bytes to the file %s", server_rank, writebytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
 	}
     */
+
+    L4C_INFO("buffer: %s", hvac_rpc_state_p->buffer);
+
 	out.ret = writebytes;
 
     ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out); 

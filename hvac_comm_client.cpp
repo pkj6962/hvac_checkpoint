@@ -465,7 +465,7 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
 }
 
 
-void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset, hvac_rpc_state_client *hvac_rpc_state_p)
+void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p)
 {
 	hg_addr_t svr_addr; 
 	hvac_rpc_in_t in;
@@ -501,8 +501,8 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer
 	hvac_rpc_state_p->svr_hash = svr_hash; 
 
 
-	// ret = HG_Forward(hvac_rpc_state_p->handle, hvac_write_cb, hvac_rpc_state_p, &in); 
-	// assert(ret == 0);
+	ret = HG_Forward(hvac_rpc_state_p->handle, hvac_write_cb, hvac_rpc_state_p, &in); 
+	assert(ret == 0);
 
 	hvac_comm_free_addr(svr_addr); 
 }
