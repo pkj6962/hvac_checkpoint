@@ -195,6 +195,7 @@ void hvac_client_comm_register_rpc()
 {   
     hvac_client_open_id = hvac_open_rpc_register();
     hvac_client_rpc_id = hvac_rpc_register();    
+    hvac_client_write_id = hvac_write_rpc_register();    
     hvac_client_close_id = hvac_close_rpc_register();
     hvac_client_seek_id = hvac_seek_rpc_register();
 }

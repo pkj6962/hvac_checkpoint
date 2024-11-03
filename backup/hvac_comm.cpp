@@ -242,40 +242,6 @@ hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 }
 
 
-static hg_return_t
-hvac_write_rpc_handler(hg_handle_t handle)
-{
-	int ret; 
-	struct hvac_rpc_state * hvac_rpc_state_p;
-	const struct hg_info *hgi; 
-	ssize_t writebytes;
-
-	hvac_rpc_state_p = (struct hvac_rpc_state*)malloc(sizeof(*hvac_rpc_state_p)); 
-
-	HG_Get_input(handle, &hvac_rpc_state_p->in); 
-
-	hvc_rpc_state_p->buffer = calloc(1, hvac_rpc_state_p->in.input_val); 
-	assert(hvac_rpc_state_p->buffer);
-	hvac_rpc_state_p->size = hvac_rpc_state_p->in.input_val; 
-	hvac_rpc_state_p->handle = handle; 
-
-	hgi = HG_Get_info(handle); 
-	assert(hgi); 
-	
-
-	ret = HG_Bulk_create(hgi->hg_class, 1, &hvac_rpc_state_p->buffer,
-		&hvac_rpc_state_p->size, HG_BULK_WRITE_ONLY, &hvac_rpc_state_p->bulk_handle);
-	assert(ret == 0); 
-
-	hvac_rpc_out_t out; 
-
-	ret = HG_Bulk_transfer(hgi->context, hvac_write_rpc_handler_bulk_cb, hvac_rpc_staet_p, HG_BULK_PULL, hgi->addr, hvac_rpc_state-p->in.bulk_handle, 0, hvac_rpc_state_p->bulk_handle, 0, hvac_rpc_state_p->size, HG_OP_ID_IGNORE); 
-	assert(ret == 0); 
-
-	return ret; 
-}
-
-
 
 static hg_return_t
 hvac_rpc_handler(hg_handle_t handle)
