@@ -74,9 +74,6 @@ static void __attribute__((constructor)) hvac_client_init()
 		snprintf(hvac_checkpoint_dir, strlen(hvac_checkpoint_dir_c)+1, "%s", hvac_checkpoint_dir_c); 
 	}
 	
-
-
-
     
 	/* sy: add */
 	initialize_hash_ring(g_hvac_server_count, VIRTUAL_NODE_CNT);

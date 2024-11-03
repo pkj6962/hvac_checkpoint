@@ -615,8 +615,6 @@ hvac_rpc_register(void)
     return tmp;
 }
 
-
-
 hg_id_t
 hvac_write_rpc_register(void)
 {
