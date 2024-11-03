@@ -476,13 +476,13 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer
 	
 	hvac_rpc_state_p->size = count; 
 	hvac_rpc_state_p->offset = offset;
-	hvac_rpc_state_p->localfd = localfd; 
+	hvac_rpc_state_p->local_fd = localfd; 
 	hvac_rpc_state_p->buffer = buffer; 
 	assert(hvac_rpc_state_p->buffer);
 
 	hvac_rpc_state_p->bulk_handle = HG_BULK_NULL; 
 	
-	hvac_comm_create_handle(svr_addr, hvac_write_client_rpc_id, &(hvac_rpc_state_p->handle)); 
+	hvac_comm_create_handle(svr_addr, hvac_client_write_id, &(hvac_rpc_state_p->handle)); 
 	hgi = HG_Get_info(hvac_rpc_state_p->handle);
 	assert(hgi); 
 	ret = HG_Bulk_create(hgi->hg_class, 1, (void**)&buffer, &(hvac_rpc_state_p->size), HG_BULK_READ_ONLY, &(in.bulk_handle)); 
@@ -494,7 +494,7 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer
 	hvac_rpc_state_p->offset = offset; //sy: add
 
 	in.input_val = count;
-	in.accesssfd = fd_redir_map[localfd]; 
+	in.accessfd = fd_redir_map[localfd]; 
 	in.localfd = localfd; 
 	in.offset = offset; 
 	in.client_rank = client_rank; 
