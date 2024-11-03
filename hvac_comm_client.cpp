@@ -473,29 +473,6 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   	in.client_rank = client_rank; //sy: add - for logging  	 
 	hvac_rpc_state_p->svr_hash = svr_hash; //sy: add   
  
-	// sy: add - logging code
-    /*
-    log_info_t log_info;
-	snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", localfd);
-    strncpy(log_info.request, "read", sizeof(log_info.request));
-	char server_addr[128];
-    size_t server_addr_str_size = sizeof(server_addr);
-    ret = HG_Addr_to_string(hvac_comm_get_class(), server_addr, &server_addr_str_size, svr_addr);
-    char server_ip[128];
-    extract_ip_portion(server_addr, server_ip, sizeof(server_ip));
-    log_info.flag = (strcmp(client_address, server_ip) == 0) ? 1 : 0;    
-
-
-	log_info.client_rank = client_rank;
-    log_info.server_rank = svr_hash;
-    strncpy(log_info.expn, "CRequest", sizeof(log_info.expn));
-    log_info.n_epoch = -1;
-    log_info.n_batch = -1;
-    gettimeofday(&log_info.clocktime, NULL);
-
-    logging_info(&log_info, "client"); 
-    */
-
     ret = HG_Forward(hvac_rpc_state_p->handle, hvac_read_cb, hvac_rpc_state_p, &in);
     assert(ret == 0);
 

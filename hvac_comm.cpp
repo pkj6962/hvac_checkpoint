@@ -292,6 +292,7 @@ hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 }
 
 
+
 static hg_return_t
 hvac_rpc_handler(hg_handle_t handle)
 {
@@ -311,7 +312,6 @@ hvac_rpc_handler(hg_handle_t handle)
         free(hvac_rpc_state_p);
         return (hg_return_t)ret;
     }
-    gettimeofday(&log_info.clocktime, NULL);
     
     /* This includes allocating a target buffer for bulk transfer */
     hvac_rpc_state_p->buffer = calloc(1, hvac_rpc_state_p->in.input_val);
@@ -333,30 +333,6 @@ hvac_rpc_handler(hg_handle_t handle)
         &hvac_rpc_state_p->bulk_handle);
     assert(ret == 0);
     
-	// sy: add - logging code*/
-    /*
-    snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", hvac_rpc_state_p->in.localfd); 
-    log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
-    strncpy(log_info.request, "read", sizeof(log_info.request) - 1);
-    log_info.request[sizeof(log_info.request) - 1] = '\0';
-
-//    hg_bool_t cmp_result = HG_Addr_cmp(hvac_comm_get_class(), hgi->addr, server_address);
-	char client_addr_str[128];
-    size_t client_addr_str_size = sizeof(client_addr_str);
-    ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
-	char client_ip[128];
-	extract_ip_portion(client_addr_str, client_ip, sizeof(client_ip));
-
-	log_info.flag = (strcmp(server_addr_str, client_ip) == 0) ? 1 : 0;
-
-    log_info.client_rank = hvac_rpc_state_p->in.client_rank;
-    log_info.server_rank = server_rank;
-    strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
-    log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-    log_info.n_epoch = -1;
-    log_info.n_batch = -1;
-    logging_info(&log_info, "server");
-    */
 	hvac_rpc_out_t out;
 
     if (hvac_rpc_state_p->in.offset == -1){
