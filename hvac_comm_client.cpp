@@ -135,10 +135,10 @@ hvac_write_cb(const struct hg_cb_info *info)
     const struct hg_info *hgi;
     log_info_t log_info;
 
-    // assert(info->ret == HG_SUCCESS);
+    assert(info->ret == HG_SUCCESS);
     if (info->ret != HG_SUCCESS) {
         L4C_INFO("RPC failed: %s", HG_Error_to_string(info->ret));
-        assert(info->ret == HG_SUCCESS);
+        // assert(info->ret == HG_SUCCESS);
 
     } 
     else {
@@ -488,6 +488,7 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *
 
 	hvac_rpc_state_p->bulk_handle = HG_BULK_NULL; 
 	
+    L4C_INFO("write id in gen_write_rpc: %d", hvac_client_write_id); 
 	hvac_comm_create_handle(svr_addr, hvac_client_write_id, &(hvac_rpc_state_p->handle)); 
 	hgi = HG_Get_info(hvac_rpc_state_p->handle);
 	assert(hgi); 
