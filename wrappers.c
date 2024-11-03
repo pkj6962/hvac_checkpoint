@@ -148,10 +148,10 @@ int WRAP_DECL(close)(int fd)
 	const char *path = hvac_get_path(fd);
 	if (path)
 	{
-		L4C_INFO("Close to file %s",path);
+		//L4C_INFO("Close to file %s",path);
 		hvac_remove_fd(fd);
 	}
-	L4C_INFO("Close - path: %s", path); 
+	//L4C_INFO("Close - path: %s", path); 
 
 
 	if ((ret = __real_close(fd)) != 0)
@@ -330,10 +330,10 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) {
         L4C_INFO("Write to tracked file %s of size %ld", path, count);
 
         // Handle caching logic here
-        // ssize_t cached_write = hvac_cache_write(fd, buf, count);
-        // if (cached_write > 0) {
-            // return cached_write;  // Successfully written to cache
-        }
+         ssize_t cached_write = hvac_cache_write(fd, buf, count);
+         if (cached_write > 0) {
+             return cached_write;  // Successfully written to cache
+         }
     }
 
     // If not cached or an error occurs, perform the real write

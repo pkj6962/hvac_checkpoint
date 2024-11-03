@@ -290,7 +290,7 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     ssize_t bytes_written = -1;
 	hg_bool_t done = HG_FALSE; 
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER; 
-	pthread_mutex_t mutex = PTHREAD_MUTEX_INITALIZER; 
+	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; 
 
     if (hvac_file_tracked(fd)) 
     {
@@ -511,7 +511,7 @@ const char * hvac_get_path(int fd)
     ssize_t len = readlink(path.c_str(), filepath, sizeof(filepath)-1); 
     filepath[len] = '\0'; 
 
-    L4C_INFO("fd on HVAC_GET_PATH: %d %s\n", fd, filepath); 
+    //L4C_INFO("fd on HVAC_GET_PATH: %d %s\n", fd, filepath); 
 	if (fd_map.empty()) { //sy: add
         return NULL;
     }
