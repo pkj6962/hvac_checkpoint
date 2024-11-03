@@ -284,7 +284,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
 
 
-/*
+
 ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 {
     ssize_t bytes_written = -1;
@@ -292,7 +292,8 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 	pthread_cond_t cond = PTHREAD_COND_INITIALIZER; 
 	pthread_mutex_t mutex = PTHREAD_MUTEX_INITALIZER; 
 
-    if (hvac_file_tracked(fd)) {
+    if (hvac_file_tracked(fd)) 
+    {
 		// TODO: It should be changed so that the client sends requests to the local server. 
         // Determine which server to communicate with based on the file descriptor.
 
@@ -312,22 +313,20 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 		hvac_rpc_state_p->mutex = &mutex; 
 
         // Generate the write RPC request.
-        hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
+        // hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
         // Wait for the server to process the write request.
-        bytes_written = hvac_write_block(host, &done, &bytes_read, &cond, &mutex);
+        // bytes_written = hvac_write_block(host, &done, &bytes_read, &cond, &mutex);
 		if(bytes_written == -1){
             fd_map.erase(fd);
         }
 	}
-        return bytes_written; // Return the number of bytes written or -1 if an error occurred.
-    }
-
+    L4C_INFO("Client is redirected to real_write"); 
     // Non-HVAC Writes should return -1.
     return bytes_written;
 }
 
-*/
+
 
 
 
