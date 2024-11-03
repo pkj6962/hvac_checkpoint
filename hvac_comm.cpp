@@ -621,7 +621,7 @@ hvac_write_rpc_register(void)
     hg_id_t tmp;
 
     tmp = MERCURY_REGISTER(
-        hg_class, "hvac_write_rpc", hvac_rpc_in_t, hvac_rpc_out_t, hvac_write_rpc_handler);
+        hg_class, "hvac_write_rpc", hvac_write_in_t, hvac_write_out_t, hvac_write_rpc_handler);
 
     return tmp;
 }

@@ -88,6 +88,10 @@ MERCURY_GEN_PROC(hvac_open_in_t, ((hg_string_t)(path))((int32_t)(client_rank))((
 MERCURY_GEN_PROC(hvac_rpc_out_t, ((int32_t)(ret)))
 MERCURY_GEN_PROC(hvac_rpc_in_t, ((int32_t)(input_val))((hg_bulk_t)(bulk_handle))((int32_t)(accessfd))((int32_t)(localfd))((int64_t)(offset))((int32_t)(client_rank)))
 
+//BULK write Handler
+MERCURY_GEN_PROC(hvac_write_out_t, ((int32_t)(ret)))
+MERCURY_GEN_PROC(hvac_write_in_t, ((int32_t)(input_val))((hg_bulk_t)(bulk_handle))((int32_t)(accessfd))((int32_t)(localfd))((int64_t)(offset))((int32_t)(client_rank)))
+
 //RPC Seek Handler
 MERCURY_GEN_PROC(hvac_seek_out_t, ((int32_t)(ret)))
 MERCURY_GEN_PROC(hvac_seek_in_t, ((int32_t)(fd))((int32_t)(offset))((int32_t)(whence)))
