@@ -128,7 +128,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
                 std::string test = std::filesystem::canonical(hvac_data_dir);
                 if (ppath.find(test) != std::string::npos) {
                     L4C_INFO("Tracking used HVAC_DATA_DIR file %s", path);
-                    fd_map[fd] = std::fffilesystem::canonical(path);
+                    fd_map[fd] = std::filesystem::canonical(path);
                     tracked = true;
                 }
             } else if (ppath == std::filesystem::current_path()) {
