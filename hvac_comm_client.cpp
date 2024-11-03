@@ -135,9 +135,11 @@ hvac_write_cb(const struct hg_cb_info *info)
     const struct hg_info *hgi;
     log_info_t log_info;
 
-    assert(info->ret == HG_SUCCESS);
+    // assert(info->ret == HG_SUCCESS);
     if (info->ret != HG_SUCCESS) {
         L4C_INFO("RPC failed: %s", HG_Error_to_string(info->ret));
+        assert(info->ret == HG_SUCCESS);
+
     } 
     else {
         // decode response
