@@ -126,6 +126,53 @@ hvac_open_cb(const struct hg_cb_info *info)
 
 
 
+static hg_return_t
+hvac_write_cb(const struct hg_cb_info *info)
+{
+    hg_return_t ret;
+    hvac_rpc_out_t out;
+    struct hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)info->arg;
+    const struct hg_info *hgi;
+    log_info_t log_info;
+
+    assert(info->ret == HG_SUCCESS);
+    if (info->ret != HG_SUCCESS) {
+        L4C_INFO("RPC failed: %s", HG_Error_to_string(info->ret));
+    } 
+    else {
+        // decode response
+        ret = HG_Get_output(info->info.forward.handle, &out);
+        if (ret != HG_SUCCESS) {
+            L4C_INFO("Failed to get output: %s", HG_Error_to_string(ret));
+        }
+        else {
+            *(hvac_rpc_state_p->bytes_written) = out.ret;
+            if (out.ret < 0) {
+                L4C_INFO("Server-side write failed with result: %zd", out.ret);
+            }
+            ret = HG_Free_output(info->info.forward.handle, &out);
+            assert(ret == HG_SUCCESS);
+        }
+    }
+
+    // clean up resources consumed by this rpc 
+    ret = HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
+    assert(ret == HG_SUCCESS);
+
+    ret = HG_Destroy(info->info.forward.handle);
+    assert(ret == HG_SUCCESS);
+
+    // signal to main() that we are done 
+    pthread_mutex_lock(hvac_rpc_state_p->mutex);
+    *(hvac_rpc_state_p->done) = HG_TRUE;
+    pthread_cond_signal(hvac_rpc_state_p->cond);
+    pthread_mutex_unlock(hvac_rpc_state_p->mutex);
+
+    free(hvac_rpc_state_p);
+
+    return HG_SUCCESS;
+}
+
 
 
 /* callback triggered upon receipt of rpc response */
