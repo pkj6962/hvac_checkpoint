@@ -183,18 +183,16 @@ void hvac_comm_list_addr()
 
 
 /* callback triggered upon completion of bulk transfer */
-/*
+
 static hg_return_t
 hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 {
-
     struct hvac_rpc_state *hvac_rpc_state_p = (struct hvac_rpc_state*)info->arg;
 	int ret; 
 	hvac_rpc_out_t out;
-	ssize_t writebytes; 
-
+	ssize_t writebytes = 1; // temp value for debugging  
     assert(info->ret == 0); 
-
+    /*
 	if (hvac_rpc_state_p->in.offset == -1)
 	{
 		writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size); 
@@ -204,6 +202,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 		writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->offset); 
 		L4C_DEBUG("Server rank %d: Wrote %lld bytes to the file %s", server_rank, writebytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
 	}
+    */
 	out.ret = writebytes;
 
     ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out); 
@@ -216,7 +215,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 	free(hvac_rpc_state_p); 
 }
 
-*/
+
 
 
 /* callback triggered upon completion of bulk transfer */
@@ -242,7 +241,7 @@ hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
     return (hg_return_t)0;
 }
 
-/*
+
 static hg_return_t
 hvac_write_rpc_handler(hg_handle_t handle)
 {
@@ -255,8 +254,8 @@ hvac_write_rpc_handler(hg_handle_t handle)
 
 	HG_Get_input(handle, &hvac_rpc_state_p->in); 
 
-	//hvc_rpc_state_p->buffer = calloc(1, hvac_rpc_state_p->in.input_val); 
-	//assert(hvac_rpc_state_p->buffer);
+	hvc_rpc_state_p->buffer = calloc(1, hvac_rpc_state_p->in.input_val); 
+	assert(hvac_rpc_state_p->buffer);
 	hvac_rpc_state_p->size = hvac_rpc_state_p->in.input_val; 
 	hvac_rpc_state_p->handle = handle; 
 
@@ -275,7 +274,7 @@ hvac_write_rpc_handler(hg_handle_t handle)
 
 	return ret; 
 }
-*/
+
 
 
 static hg_return_t
@@ -408,6 +407,7 @@ hvac_rpc_register(void)
 
     return tmp;
 }
+
 /*
 hg_id_t
 hvac_write_rpc_register(void)
