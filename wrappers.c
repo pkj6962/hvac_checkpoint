@@ -322,7 +322,8 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 */
 
 
-ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) {
+ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
+{
     MAP_OR_FAIL(write);  // Resolves the real `write` function.
 
     const char *path = hvac_get_path(fd);
@@ -330,9 +331,9 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) {
         L4C_INFO("Write to tracked file %s of size %ld", path, count);
 
         // Handle caching logic here
-        // ssize_t cached_write = hvac_cache_write(fd, buf, count);
-        // if (cached_write > 0) {
-            // return cached_write;  // Successfully written to cache
+        ssize_t cached_write = hvac_cache_write(fd, buf, count);
+        if (cached_write > 0) {
+            return cached_write;  // Successfully written to cache
         }
     }
 
