@@ -23,6 +23,7 @@ static pthread_mutex_t done_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* RPC Globals */
 static hg_id_t hvac_client_rpc_id;
+static hg_id_t hvac_client_write_id; 
 static hg_id_t hvac_client_open_id;
 static hg_id_t hvac_client_close_id;
 static hg_id_t hvac_client_seek_id;
@@ -226,6 +227,45 @@ void hvac_client_block(uint32_t host, hg_bool_t *done, pthread_cond_t *cond, pth
 
 }
 
+ssize_t hvac_write_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_written, pthread_cond_t *cond, pthread_mutex_t *mutex)
+{
+	// sy: modified logic + jh: timeout logic
+
+	struct timespec timeout;
+	int wait_status;
+    clock_gettime(CLOCK_REALTIME, &timeout);
+    timeout.tv_sec += TIMEOUT_SECONDS;
+
+//	L4C_INFO("before readblock\n");
+	pthread_mutex_lock(mutex);
+
+    while (*done != HG_TRUE) {
+		wait_status = pthread_cond_wait(cond, mutex);
+		//wait_status = pthread_cond_timedwait(cond, mutex, &timeout);
+        /*
+        if (wait_status == ETIMEDOUT){
+	    	L4C_INFO("TIMEOUT: HVAC remote read failed due to timeout; it will be redirected to pfs");
+			// Timeout counter update
+			{
+				std::lock_guard<std::mutex> lock(timeout_mutex);
+            	timeout_counters[host]++;
+			}
+		    pthread_mutex_unlock(mutex);
+		    return -1;
+    	}
+        */
+    }
+    ssize_t result = *bytes_written;
+    pthread_mutex_unlock(mutex);
+//	L4C_INFO("outside readblock\n");
+	if (result < 0) {
+        L4C_INFO("HVAC cache write failed with error %zd; %zd returned\n", result, result);
+        return result;
+    }
+    return result;
+	
+}
+
 ssize_t hvac_read_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pthread_cond_t *cond, pthread_mutex_t *mutex)
 {
 	// sy: modified logic + jh: timeout logic
@@ -402,6 +442,8 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, void *buffer
 	assert(ret == HG_SUCCESS); 
 	hvac_rpc_state_p->bulk_handle = in.bulk_handle;
 
+    hvac_rpc_state_p->local_fd = localfd; //sy: add
+	hvac_rpc_state_p->offset = offset; //sy: add
 
 	in.input_val = count;
 	in.accesssfd = fd_redir_map[localfd]; 

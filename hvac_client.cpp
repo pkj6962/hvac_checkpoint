@@ -299,22 +299,27 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 		
 		const char *rank_str = getenv("PMI_RANK");
 		int client_rank = atoi(rank_str);
+        // TODOL What if N(clients):1(server) model in single node? 
 		int host = client_rank; 
+		// int host = client_rank  % NUM_NODE; // maybe we can refer to enviornment variable.  
         // int host = hash<string>{}(fd_map[fd]) % g_hvac_server_count;
         L4C_INFO("NVMe buffering(write) - Host %d", host);
 
 		hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client*)malloc(sizeof(hvac_rpc_state_t_client)); 
-		hvac_rpc_state_p->bytes_read = &bytes_written; 
+		hvac_rpc_state_p->bytes_written = &bytes_written; 
 		hvac_rpc_state_p->done = &done; 
 		hvac_rpc_state_p->cond = &cond; 
 		hvac_rpc_state_p->mutex = &mutex; 
 
         // Generate the write RPC request.
-        hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1);
+        hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
         // Wait for the server to process the write request.
-        bytes_written = hvac_write_block();
-
+        bytes_written = hvac_write_block(host, &done, &bytes_read, &cond, &mutex);
+		if(bytes_written == -1){
+            fd_map.erase(fd);
+        }
+	}
         return bytes_written; // Return the number of bytes written or -1 if an error occurred.
     }
 
