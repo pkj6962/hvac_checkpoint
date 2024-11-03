@@ -42,6 +42,7 @@ int hvac_start_comm_server(void)
 
     /* Register basic RPC */
     hvac_rpc_register();
+    hvac_write_rpc_register();
     hvac_open_rpc_register();
     hvac_close_rpc_register();
     hvac_seek_rpc_register();
