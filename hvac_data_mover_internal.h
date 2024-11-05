@@ -14,6 +14,5 @@ extern queue<string> data_queue;
 extern map<int, string> fd_to_path;
 extern map<string, string> path_cache_map;
 
-
 void *hvac_data_mover_fn(void *args);
 #endif
