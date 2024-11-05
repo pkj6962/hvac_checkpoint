@@ -3,6 +3,8 @@ include(FindPkgConfig)
 pkg_check_modules(MERCURY REQUIRED IMPORTED_TARGET mercury)
 pkg_check_modules(LOG4C REQUIRED IMPORTED_TARGET log4c)
 
+# Option to build tests
+option(BUILD_TESTS "Build tests" OFF)
 
 #Dynamic Target
 add_library(hvac_client SHARED hvac.cpp hvac_client.cpp wrappers.c hvac_data_mover.cpp hvac_logging.c hvac_comm.cpp hvac_comm_client.cpp)
@@ -14,11 +16,17 @@ set_target_properties(hvac_client PROPERTIES BUILD_RPATH /sw/summit/gcc/9.1.0-al
 target_link_libraries(hvac_client PRIVATE pthread dl PkgConfig::LOG4C PkgConfig::MERCURY)
 
 #Server Daemon
-add_executable(hvac_server hvac.cpp hvac_server.cpp hvac_data_mover.cpp hvac_comm.cpp hvac_logging.c )
+add_executable(hvac_server hvac.cpp hvac_server.cpp hvac_data_mover.cpp hvac_comm.cpp hvac_logging.c parity.cpp)
 target_compile_definitions(hvac_server PUBLIC HVAC_SERVER)
 target_include_directories(hvac_server PRIVATE ${CMAKE_SOURCE_DIR}/include)
 #set_target_properties(hvac_server PROPERTIES BUILD_RPATH /sw/summit/gcc/9.1.0-alpha+20190716/lib64)
 set_target_properties(hvac_server PROPERTIES BUILD_RPATH /sw/peak/gcc/10.2.0-2/lib64/)
 target_link_libraries(hvac_server PRIVATE pthread PkgConfig::LOG4C rt PkgConfig::MERCURY)
+
+# Include tests
+if(BUILD_TESTS)
+    add_subdirectory(tests)
+endif()
+
 install(TARGETS hvac_client DESTINATION lib)
 install(TARGETS hvac_server DESTINATION bin)
