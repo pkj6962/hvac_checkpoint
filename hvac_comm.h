@@ -107,6 +107,8 @@ void hvac_comm_list_addr();
 void hvac_comm_create_handle(hg_addr_t addr, hg_id_t id, hg_handle_t *handle);
 void hvac_shutdown_comm();
 void hvac_comm_free_addr(hg_addr_t addr);
+string hvac_get_bbpath(string path); 
+
 
 //Retrieve the static variables
 hg_class_t *hvac_comm_get_class();

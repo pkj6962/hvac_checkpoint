@@ -18,6 +18,10 @@ static hg_context_t *hg_context = NULL;
 static int hvac_progress_thread_shutdown_flags = 0;
 static int hvac_server_rank = -1;
 static int server_rank = -1;
+static string hvac_data_dir; 
+static string hvac_checkpoint_dir; 
+
+
 
 char server_addr_str[128]; 
 
@@ -133,11 +137,16 @@ void hvac_init_comm(hg_bool_t listen)
 		if (rank_str != NULL){
 			hvac_server_rank = atoi(rank_str);
 			const char *type = "server";
-			//initialize_log(hvac_server_rank, type);
+			//ialize_log(hvac_server_rank, type);
 		}else
 		{
 			L4C_FATAL("Failed to extract rank\n");
 		}
+
+        if (getenv("HVAC_DATA_DIR") != NULL)
+            hvac_data_dir = getenv("HVAC_DATA_DIR"); 
+        if (getenv("HVAC_CHECKPOINT_DIR") != NULL)
+            hvac_checkpoint_dir = getenv("HVAC_CHECKPOINT_DIR"); 
 	}
 
 	L4C_INFO("Mecury initialized");
@@ -515,12 +524,12 @@ hvac_open_rpc_handler(hg_handle_t handle)
         return (hg_return_t)ret;
     }
 
-    string ppath = filesystem::canonical(redir_path).parent_path(); 
+    string ppath = filesystem::canonical(redir_path.c_str()).parent_path(); 
 	
     // Read IO Mode 
     if (hvac_data_dir != NULL)
     {
-        string test = filesystem::canonical(hvac_data_dir).string(); 
+        string test = filesystem::canonical(hvac_data_dir.c_str()).string(); 
         if (ppath.find(test) != string::npos)
         {
             pthread_mutex_lock(&path_map_mutex); //sy: add
@@ -538,7 +547,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     // Write IO Mode
     else if (hvac_checkpoint_dir != NULL)
     {
-        string test = filesystem::canonical(hvac_checkpoint_dir); 
+        string test = filesystem::canonical(hvac_checkpoint_dir.c_str()); 
         if (ppath.find(test) != string::npos)
         {
             redir_path = hvac_get_bbpath(redir_path); 
@@ -718,7 +727,9 @@ hvac_get_bbpath(string path)
     strcpy(newdir,nvmepath.c_str());
     mkdtemp(newdir);
     string dirpath = newdir;
-    string filename = path.filename().string()
+
+    filesystem::path filepath = path; 
+    string filename = filepath.filename().string()
     string bbpath = dirpath + filename; 
 
     L4C_INFO("Original path: %s\n", path.c_str()); 
