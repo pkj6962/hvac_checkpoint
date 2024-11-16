@@ -552,6 +552,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
         {
             redir_path = hvac_get_bbpath(redir_path); 
             out.ret_status = open(redir_path.c_str(), O_WRONLY); 
+            L4C_INFO("%s is opened in WRONLY mode", redir_path.c_str()); 
         }
     }
     fd_to_path[out.ret_status] = in.path;  
