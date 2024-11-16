@@ -730,7 +730,7 @@ hvac_get_bbpath(string path)
 
     filesystem::path filepath = path; 
     string filename = filepath.filename().string();
-    string bbpath = dirpath + filename; 
+    string bbpath = dirpath + string("/") + filename; 
 
     L4C_INFO("Original path: %s\n", path.c_str()); 
     L4C_INFO("BB path: %s\n", bbpath.c_str()); 
