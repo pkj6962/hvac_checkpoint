@@ -263,6 +263,7 @@ void hvac_client_block(uint32_t host, hg_bool_t *done, pthread_cond_t *cond, pth
     clock_gettime(CLOCK_REALTIME, &timeout);
     timeout.tv_sec += TIMEOUT_SECONDS;
 
+    L4C_INFO("Client block: A");
     pthread_mutex_lock(mutex);
     while (*done != HG_TRUE){
 	    wait_status = pthread_cond_timedwait(cond, mutex, &timeout);
