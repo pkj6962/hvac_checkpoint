@@ -381,6 +381,7 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
     int ret;
 
     /* Get address */
+    L4C_INFO("Close:");
     svr_addr = hvac_client_comm_lookup_addr(svr_hash);        
 	rpc_state->addr = svr_addr;	//sy: add
 	rpc_state->host = svr_hash;
@@ -462,6 +463,7 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *
 	const struct hg_info *hgi; 
 	int ret; 
 
+    L4C_INFO("write:");
 	svr_addr = hvac_client_comm_lookup_addr(svr_hash);
 	
 	hvac_rpc_state_p->size = count; 

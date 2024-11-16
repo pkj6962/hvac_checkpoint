@@ -125,7 +125,7 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	if (ret != -1){
 		if (hvac_track_file(pathname, flags, ret))
 		{
-			L4C_INFO("Open64: Tracking file %s",pathname);
+			L4C_INFO("Open: Tracking file %s",pathname);
 		}
 		else{
             //L4C_INFO("Tracking %s failed", pathname); 
