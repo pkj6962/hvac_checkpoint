@@ -321,7 +321,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 	}
     */
 
-    L4C_INFO("buffer: %s", hvac_rpc_state_p->buffer);
+    L4C_INFO("%s |  buffer: %s", fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->buffer);
 
 	out.ret = writebytes;
 
