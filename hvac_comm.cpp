@@ -514,30 +514,39 @@ hvac_open_rpc_handler(hg_handle_t handle)
         L4C_DEBUG("HG_Get_info failed\n");
         return (hg_return_t)ret;
     }
+
+    string ppath = filesystem::canonical(redir_path).parent_path(); 
 	
-	pthread_mutex_lock(&path_map_mutex); //sy: add
-    
-    // PATH_CACHE_MAP stores Path to NVMe Cache if exists. 
-    if (path_cache_map.find(redir_path) != path_cache_map.end())
+    // Read IO Mode 
+    if (hvac_data_dir != NULL)
     {
-        redir_path = path_cache_map[redir_path];
-        nvme_flag = 1;
+        string test = filesystem::canonical(hvac_data_dir).string(); 
+        if (ppath.find(test) != string::npos)
+        {
+            pthread_mutex_lock(&path_map_mutex); //sy: add
+            // PATH_CACHE_MAP stores Path to NVMe Cache if exists. 
+            if (path_cache_map.find(redir_path) != path_cache_map.end())
+            {
+                redir_path = path_cache_map[redir_path];
+                nvme_flag = 1;
+            }
+            pthread_mutex_unlock(&path_map_mutex); //sy: add	
+            out.ret_status = open(redir_path.c_str(),O_RDONLY);  
+            L4C_INFO("Server Rank %d : Successful Open %s %d", server_rank, redir_path.c_str(), out.ret_status);    
+        }
     }
-	
-    /*
-    // Need to add logic to decide the open mode 
-    // TODO: If This request is for write mode, then we will skip to open the file because we will keep data on memory data structure. 
-    */
-    // logging_info(&log_info, "server");
-    
-    pthread_mutex_unlock(&path_map_mutex); //sy: add	
-    out.ret_status = open(redir_path.c_str(),O_RDONLY);  
-    L4C_INFO("Server Rank %d : Successful Open %s %d", server_rank, redir_path.c_str(), out.ret_status);    
-
-
+    // Write IO Mode
+    else if (hvac_checkpoint_dir != NULL)
+    {
+        string test = filesystem::canonical(hvac_checkpoint_dir); 
+        if (ppath.find(test) != string::npos)
+        {
+            redir_path = hvac_get_bbpath(redir_path); 
+            out.ret_status = open(redir_path.c_str(), O_WRONLY); 
+        }
+    }
     fd_to_path[out.ret_status] = in.path;  
     HG_Respond(handle,NULL,NULL,&out);
-
     return (hg_return_t)ret;
 
 }
@@ -691,4 +700,29 @@ hg_class_t *hvac_comm_get_class()
 hg_context_t *hvac_comm_get_context()
 {
     return hg_context;
+}
+
+
+/*
+* Input: Path that contains global file path including HVAC_CHECKPOINT_DIR
+*
+*/
+string 
+hvac_get_bbpath(string path)
+{
+    if (getenv("BBPATH") == NULL){
+        L4C_ERR("Set BBPATH Prior to using HVAC");        
+    }
+    string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";    
+    char *newdir = (char *)malloc(strlen(nvmepath.c_str())+1);
+    strcpy(newdir,nvmepath.c_str());
+    mkdtemp(newdir);
+    string dirpath = newdir;
+    string filename = path.filename().string()
+    string bbpath = dirpath + filename; 
+
+    L4C_INFO("Original path: %s\n", path.c_str()); 
+    L4C_INFO("BB path: %s\n", bbpath.c_str()); 
+
+    return bbpath; 
 }
