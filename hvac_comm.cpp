@@ -8,7 +8,7 @@ extern "C" {
 #include <unistd.h>
 }
 
-
+#include <filesystem> 
 #include <string>
 #include <iostream>
 #include <map>	
@@ -527,7 +527,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     string ppath = filesystem::canonical(redir_path.c_str()).parent_path(); 
 	
     // Read IO Mode 
-    if (hvac_data_dir != NULL)
+    if (hvac_data_dir.has_value())
     {
         string test = filesystem::canonical(hvac_data_dir.c_str()).string(); 
         if (ppath.find(test) != string::npos)
@@ -545,7 +545,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
         }
     }
     // Write IO Mode
-    else if (hvac_checkpoint_dir != NULL)
+    if (hvac_checkpoint_dir.has_value())
     {
         string test = filesystem::canonical(hvac_checkpoint_dir.c_str()); 
         if (ppath.find(test) != string::npos)
