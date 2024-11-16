@@ -602,7 +602,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	
     // Signal to the data mover to copy the file
 	pthread_mutex_lock(&path_map_mutex); //sy: add
-    if (path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
+    if (flags & O_ACCMODE == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
     {
         pthread_mutex_lock(&data_mutex);
         // TODO: File that was open in write mode should not be pushed into data_queue 
