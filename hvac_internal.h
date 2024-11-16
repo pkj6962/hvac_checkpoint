@@ -15,7 +15,7 @@
 #include <stdarg.h> /* va_list, va_start, va_arg, va_end */
 #include <stdlib.h>
 #include <stdint.h> /* size specified data types */
-#include <string> 
+#include <cstring> 
 #include <stdbool.h> 
 #include <fcntl.h>
 #include <sys/uio.h>
