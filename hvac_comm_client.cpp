@@ -413,7 +413,7 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
     hg_handle_t handle;
     int ret;
 
-
+    L4C_INFO("Open A");
     /* Get address */
     svr_addr = hvac_client_comm_lookup_addr(svr_hash);    
 
@@ -422,6 +422,8 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
 
     /* create create handle to represent this rpc operation */    
     hvac_comm_create_handle(svr_addr, hvac_client_open_id, &handle);  
+
+    L4C_INFO("Open B");
 
     in.path = (hg_string_t)malloc(strlen(path.c_str()) + 1 );
     sprintf(in.path,"%s",path.c_str());
@@ -438,9 +440,12 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
     size_t server_addr_str_size = sizeof(server_addr);
     ret = HG_Addr_to_string(hvac_comm_get_class(), server_addr, &server_addr_str_size, svr_addr);
     
+    L4C_INFO("Open C");
+
 
     ret = HG_Forward(handle, hvac_open_cb, hvac_open_state_p, &in);
     assert(ret == 0);
+
 
     
     hvac_comm_free_addr(svr_addr);

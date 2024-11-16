@@ -517,6 +517,9 @@ hvac_open_rpc_handler(hg_handle_t handle)
     assert(ret == 0);
     string redir_path = in.path;
 
+    L4C_INFO("Open A");
+
+
 	//sy: add - for logging
 	hgi = HG_Get_info(handle);
     if (!hgi) {
@@ -544,6 +547,8 @@ hvac_open_rpc_handler(hg_handle_t handle)
             L4C_INFO("Server Rank %d : Successful Open %s %d", server_rank, redir_path.c_str(), out.ret_status);    
         }
     }
+    L4C_INFO("Open B");
+
     // Write IO Mode
     if (!hvac_checkpoint_dir.empty())
     {
@@ -556,6 +561,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
         }
     }
     fd_to_path[out.ret_status] = in.path;  
+    L4C_INFO("Open C");
     HG_Respond(handle,NULL,NULL,&out);
     return (hg_return_t)ret;
 
@@ -614,6 +620,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	pthread_mutex_unlock(&path_map_mutex); //sy: add
 	
 	fd_to_path.erase(in.fd);
+    
     return (hg_return_t)ret;
 }
 
