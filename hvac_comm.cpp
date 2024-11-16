@@ -586,7 +586,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     }    
 
 
-//   L4C_INFO("Closing File %d\n",in.fd);
+  L4C_INFO("Closing File %d\n",in.fd);
     ret = close(in.fd);
 //    assert(ret == 0);
 //	out.done = ret;
