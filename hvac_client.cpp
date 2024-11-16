@@ -176,9 +176,9 @@ bool hvac_track_file(const char *path, int flags, int fd)
         hvac_open_state_p->mutex = &mutex;	
         int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;	
         L4C_INFO("Remote open - Host %d", host);
-    
+    	L4C_INFO("Open a: %s", path); 
         hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
-		L4C_INFO("Open:"); 
+		L4C_INFO("Open b: %s", path); 
         hvac_client_block(host, &done, &cond, &mutex);
     }
 
