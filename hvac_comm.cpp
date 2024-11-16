@@ -527,7 +527,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     string ppath = filesystem::canonical(redir_path.c_str()).parent_path(); 
 	
     // Read IO Mode 
-    if (hvac_data_dir.has_value())
+    if (!hvac_data_dir.empty())
     {
         string test = filesystem::canonical(hvac_data_dir.c_str()).string(); 
         if (ppath.find(test) != string::npos)
@@ -545,7 +545,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
         }
     }
     // Write IO Mode
-    if (hvac_checkpoint_dir.has_value())
+    if (!hvac_checkpoint_dir.empty())
     {
         string test = filesystem::canonical(hvac_checkpoint_dir.c_str()); 
         if (ppath.find(test) != string::npos)
@@ -729,7 +729,7 @@ hvac_get_bbpath(string path)
     string dirpath = newdir;
 
     filesystem::path filepath = path; 
-    string filename = filepath.filename().string()
+    string filename = filepath.filename().string();
     string bbpath = dirpath + filename; 
 
     L4C_INFO("Original path: %s\n", path.c_str()); 
