@@ -572,7 +572,18 @@ hvac_close_rpc_handler(hg_handle_t handle)
     int ret = HG_Get_input(handle, &in);
     assert(ret == HG_SUCCESS);
 
-        
+    int flags = fctnl(fd, F_GETFL); 
+    switch(flags & O_ACCMODE)
+    {
+        case O_RDONLY:
+            L4C_INFO("File is opened in readonly mode");
+            break;
+        case O_WRONLY: 
+            L4C_INFO("File is opened in writeonly mode"); 
+            break; 
+        default: 
+            L4C_INFO("Other mode"); 
+    }    
 
 
 //   L4C_INFO("Closing File %d\n",in.fd);
