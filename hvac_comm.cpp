@@ -572,7 +572,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     int ret = HG_Get_input(handle, &in);
     assert(ret == HG_SUCCESS);
 
-    int flags = fctnl(fd, F_GETFL); 
+    int flags = fcntl(in.fd, F_GETFL); 
     switch(flags & O_ACCMODE)
     {
         case O_RDONLY:
