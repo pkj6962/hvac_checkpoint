@@ -8,8 +8,6 @@
 #ifndef __HVAC_INTERNAL_H__
 #define __HVAC_INTERNAL_H__
 
-
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdarg.h> /* va_list, va_start, va_arg, va_end */
@@ -53,7 +51,7 @@
 #endif
 
 
-using namespace std; 
+// using namespace std; 
 
 /* Mapper Macro
  *
@@ -154,7 +152,7 @@ extern "C" bool hvac_file_tracked(int fd);
 
 extern bool hvac_track_file(const char* path, int flags, int fd);
 extern const char * hvac_get_path(int fd);
-extern string hvac_get_bbpath(string path); 
+// extern string hvac_get_bbpath(string path); 
 extern bool  hvac_remove_fd(int fd);
 extern ssize_t hvac_cache_write(int fd, const void *buf, size_t count);
 extern ssize_t hvac_remote_read(int fd, void *buf, size_t count);
