@@ -153,6 +153,7 @@ void hvac_client_block()
 	    if (wait_status == ETIMEDOUT)
 	    {
 		    L4C_INFO("TIMEOUT: Timeout period elapsed in hvac_client_block"); 
+            exit(-1); 
 		    break; 
 	    }
      } 
@@ -178,6 +179,7 @@ ssize_t hvac_read_block()
 	    {
 	    	L4C_INFO("TIMEOUT: HVAC remote read failed due to timeout; it will be redirected to pfs"); //Does this deregister memory?
 		    pthread_mutex_unlock(&done_mutex); 
+            exit(-1);
 		    return -1; 
     	}
     }

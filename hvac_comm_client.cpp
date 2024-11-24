@@ -251,6 +251,7 @@ void hvac_client_block(uint32_t host, hg_bool_t *done, pthread_cond_t *cond, pth
             	timeout_counters[host]++;
 			}
             pthread_mutex_unlock(mutex);
+            exit(-1);
 		    return;
 	    }
      }

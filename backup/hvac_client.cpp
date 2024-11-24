@@ -138,9 +138,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
                 L4C_INFO("Rank after init: %d", client_rank);
             }
 
-
-
-
 			/* I think I only need to do this once */
 			hvac_client_comm_register_rpc();
 			g_mercury_init = true;
