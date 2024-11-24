@@ -334,7 +334,7 @@ hvac_rpc_handler(hg_handle_t handle)
     assert(ret == 0);
     
 	// sy: add - logging code*/
-    
+    /*
     snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", hvac_rpc_state_p->in.localfd); 
     log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
     strncpy(log_info.request, "read", sizeof(log_info.request) - 1);
@@ -356,6 +356,7 @@ hvac_rpc_handler(hg_handle_t handle)
     log_info.n_epoch = -1;
     log_info.n_batch = -1;
     logging_info(&log_info, "server");
+    */
 	hvac_rpc_out_t out;
 
     if (hvac_rpc_state_p->in.offset == -1){
@@ -389,9 +390,11 @@ hvac_rpc_handler(hg_handle_t handle)
                 free(hex_buf);
             }
 */	
+        /*
 		if (readbytes < 0) { //sy: add
 			strncpy(log_info.expn, "Fail", sizeof(log_info.expn) - 1);
             log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+        */
             // logging_info(&log_info, "server");
 /*
         const char* original_path = fd_to_path[hvac_rpc_state_p->in.accessfd].c_str();
@@ -537,7 +540,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 
     int ret = HG_Get_input(handle, &in);
     assert(ret == HG_SUCCESS);
-	gettimeofday(&log_info.clocktime, NULL);
+	// gettimeofday(&log_info.clocktime, NULL);
  //   L4C_INFO("Closing File %d\n",in.fd);
     ret = close(in.fd);
 //    assert(ret == 0);
