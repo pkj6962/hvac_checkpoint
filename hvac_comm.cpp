@@ -545,6 +545,8 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	
 
 	// sy: add - logging code
+    char client_addr_str[128];
+    size_t client_addr_str_size = sizeof(client_addr_str);
     ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
 
     /*
