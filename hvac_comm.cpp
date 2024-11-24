@@ -334,7 +334,7 @@ hvac_rpc_handler(hg_handle_t handle)
     assert(ret == 0);
     
 	// sy: add - logging code*/
-    /*
+    
     snprintf(log_info.filepath, sizeof(log_info.filepath), "fd_%d", hvac_rpc_state_p->in.localfd); 
     log_info.filepath[sizeof(log_info.filepath) - 1] = '\0';
     strncpy(log_info.request, "read", sizeof(log_info.request) - 1);
@@ -356,7 +356,6 @@ hvac_rpc_handler(hg_handle_t handle)
     log_info.n_epoch = -1;
     log_info.n_batch = -1;
     logging_info(&log_info, "server");
-    */
 	hvac_rpc_out_t out;
 
     if (hvac_rpc_state_p->in.offset == -1){
@@ -546,6 +545,8 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	
 
 	// sy: add - logging code
+    ret = HG_Addr_to_string(hvac_comm_get_class(), client_addr_str, &client_addr_str_size, hgi->addr);
+
     /*
 	hgi = HG_Get_info(handle);
     if (!hgi) {
@@ -586,7 +587,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     {
 		//strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
     	//log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-        L4C_INFO("Caching %s",fd_to_path[in.fd].c_str());
+        // L4C_INFO("Caching %s",fd_to_path[in.fd].c_str());
         pthread_mutex_lock(&data_mutex);
         data_queue.push(fd_to_path[in.fd]);
         pthread_cond_signal(&data_cond);
