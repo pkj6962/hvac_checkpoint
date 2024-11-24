@@ -546,6 +546,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	
 
 	// sy: add - logging code
+    /*
 	hgi = HG_Get_info(handle);
     if (!hgi) {
         L4C_DEBUG("HG_Get_info failed\n");
@@ -576,17 +577,16 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	gettimeofday(&log_info.clocktime, NULL);
 	strncpy(log_info.expn, "SReceive", sizeof(log_info.expn) - 1);
     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-
+    */
 
 
     //Signal to the data mover to copy the file
-	
 	pthread_mutex_lock(&path_map_mutex); //sy: add
     if (path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
     {
-		strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
-    	log_info.expn[sizeof(log_info.expn) - 1] = '\0';
- //       L4C_INFO("Caching %s",fd_to_path[in.fd].c_str());
+		//strncpy(log_info.expn, "SNVMeRequest", sizeof(log_info.expn) - 1);
+    	//log_info.expn[sizeof(log_info.expn) - 1] = '\0';
+        L4C_INFO("Caching %s",fd_to_path[in.fd].c_str());
         pthread_mutex_lock(&data_mutex);
         data_queue.push(fd_to_path[in.fd]);
         pthread_cond_signal(&data_cond);
@@ -594,6 +594,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 		nvme_flag = 1;
     }
 	pthread_mutex_unlock(&path_map_mutex); //sy: add
+    /*
 	if (nvme_flag) {
 		// logging_info(&log_info, "server");
 		strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
@@ -609,6 +610,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 	}	
 	log_info.clocktime = tmp_time;
     // logging_info(&log_info, "server");	
+    */
 	
 	fd_to_path.erase(in.fd);
     return (hg_return_t)ret;
