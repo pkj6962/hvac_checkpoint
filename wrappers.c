@@ -253,7 +253,7 @@ ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
 	{
 		ret = __real_pread(fd,buf,count,offset);
 	}
-
+	L4C_INFO("final return: %ld", ret); 
 	return ret;
 }
 

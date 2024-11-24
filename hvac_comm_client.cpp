@@ -166,7 +166,7 @@ hvac_read_cb(const struct hg_cb_info *info)
 			assert(ret == HG_SUCCESS);
 		}
 	} 
-    L4C_INFO("cb2"); 
+    
 
 
     /*
@@ -213,6 +213,9 @@ hvac_read_cb(const struct hg_cb_info *info)
     pthread_mutex_unlock(hvac_rpc_state_p->mutex);	
  
 	free(hvac_rpc_state_p);
+
+    L4C_INFO("cb3"); 
+
 //	L4C_INFO("after signaling\n");
 //	L4C_INFO("done %d\n", done);
 	
