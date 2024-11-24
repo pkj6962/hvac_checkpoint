@@ -134,6 +134,8 @@ hvac_read_cb(const struct hg_cb_info *info)
 	const struct hg_info *hgi;
 	log_info_t log_info;
 
+    L4C_INFO("cb1"); 
+
     assert(info->ret == HG_SUCCESS);
 	if (info->ret != HG_SUCCESS) {
         L4C_INFO("RPC failed: %s", HG_Error_to_string(info->ret));
@@ -164,7 +166,10 @@ hvac_read_cb(const struct hg_cb_info *info)
 			assert(ret == HG_SUCCESS);
 		}
 	} 
+    L4C_INFO("cb2"); 
 
+
+    /*
 	char server_addr[128];
     char server_ip[128];
 	hgi = HG_Get_info(info->info.forward.handle);
@@ -187,8 +192,10 @@ hvac_read_cb(const struct hg_cb_info *info)
     gettimeofday(&log_info.clocktime, NULL);
 
     // logging_info(&log_info, "client");
-
+    */
 	
+    L4C_INFO("cb2"); 
+
    /* clean up resources consumed by this rpc */
     ret = HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
 	assert(ret == HG_SUCCESS);
