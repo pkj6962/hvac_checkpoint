@@ -390,11 +390,10 @@ hvac_rpc_handler(hg_handle_t handle)
                 free(hex_buf);
             }
 */	
-        /*
+
 		if (readbytes < 0) { //sy: add
 			strncpy(log_info.expn, "Fail", sizeof(log_info.expn) - 1);
             log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-        */
             // logging_info(&log_info, "server");
 /*
         const char* original_path = fd_to_path[hvac_rpc_state_p->in.accessfd].c_str();
@@ -416,6 +415,7 @@ hvac_rpc_handler(hg_handle_t handle)
                 HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
                 free(hvac_rpc_state_p->buffer);
                 L4C_DEBUG("server read failed -1\n");
+                L4C_INFO("server read failed -1\n");
                 out.ret = -1;  // Indicate failure
                 HG_Respond(handle, NULL, NULL, &out);
                 free(hvac_rpc_state_p);
