@@ -135,7 +135,44 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	return ret;
 }
 
+int WRAP_DECL(open64)(const char *pathname, int flags, ...)
+{
+	int ret = 0;
+	va_list ap;
+	int mode = 0;
 
+
+	if (flags & O_CREAT)
+	{
+		va_start(ap, flags);
+		mode = va_arg(ap, int);
+		va_end(ap);
+	}
+
+
+	MAP_OR_FAIL(open64);
+	if (g_disable_redirect || tl_disable_redirect) return __real_open64(pathname, flags, mode);	
+
+
+	if (mode)
+	{
+		ret = __real_open64(pathname, flags, mode);
+	}
+	else
+	{
+		ret = __real_open64(pathname, flags);
+	}
+
+
+	if (ret != -1)
+	{
+		if (hvac_track_file(pathname, flags, ret))
+		{
+			L4C_INFO("Open64: Tracking file %s",pathname);
+		}
+	}
+	return ret;
+}
 
 int WRAP_DECL(close)(int fd)
 {
