@@ -457,6 +457,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     string redir_path = in.path;
 
 	//sy: add - for logging
+    /*
 	hgi = HG_Get_info(handle);
     if (!hgi) {
         L4C_DEBUG("HG_Get_info failed\n");
@@ -487,7 +488,8 @@ hvac_open_rpc_handler(hg_handle_t handle)
 
 	strncpy(log_info.expn, "SPFSRequest", sizeof(log_info.expn) - 1);
     log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-	
+	*/
+
 	pthread_mutex_lock(&path_map_mutex); //sy: add
     if (path_cache_map.find(redir_path) != path_cache_map.end())
     {
@@ -500,10 +502,10 @@ hvac_open_rpc_handler(hg_handle_t handle)
 	pthread_mutex_unlock(&path_map_mutex); //sy: add	
     L4C_INFO("Server Rank %d : Successful Open %s", server_rank, in.path);    
 
+    out.ret_status = open(redir_path.c_str(),O_RDONLY);  
     /*
     gettimeofday(&log_info.clocktime, NULL);
     // logging_info(&log_info, "server");
-    out.ret_status = open(redir_path.c_str(),O_RDONLY);  
 	gettimeofday(&log_info.clocktime, NULL);
     if (nvme_flag) {
         strncpy(log_info.expn, "SNVMeReceive", sizeof(log_info.expn) - 1);
