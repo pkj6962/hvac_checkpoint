@@ -302,8 +302,8 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
         int world_size = atoi(world_size_str); 
         // TODOL What if N(clients):1(server) model in single node? 
 		int host = client_rank / (world_size / g_hvac_server_count);
-		// int host = client_rank  % NUM_NODE; // maybe we can refer to enviornment variable.  
-        // int host = hash<string>{}(fd_map[fd]) % g_hvac_server_count;
+		
+        
         L4C_INFO("NVMe buffering(write) - Host %d", host);
 
 		hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client*)malloc(sizeof(hvac_rpc_state_t_client)); 

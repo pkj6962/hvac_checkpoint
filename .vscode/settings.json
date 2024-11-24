@@ -5,6 +5,7 @@
         "chrono": "cpp",
         "format": "cpp",
         "queue": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "~": "cpp"
     }
 }
