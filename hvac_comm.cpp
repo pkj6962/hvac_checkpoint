@@ -116,6 +116,15 @@ void hvac_init_comm(hg_bool_t listen)
 
     HG_Set_log_level("DEBUG");
 
+
+
+    /* Initialize Mercury with the desired network abstraction class */
+    hg_class = HG_Init(info_string, listen);
+	if (hg_class == NULL){
+		L4C_FATAL("Failed to initialize HG_CLASS Listen Mode : %d\n", listen);
+	}
+
+    
     /* Initialize Mercury with the desired network abstraction class */
     hg_class = HG_Init(info_string, listen);
 	if (hg_class == NULL){
