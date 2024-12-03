@@ -1,6 +1,5 @@
 #include "checkpoint_manager.h"
 
-// TODO: add comments, document code
 CheckpointChunk::CheckpointChunk()
     : buffer(std::make_unique<char[]>(CHUNK_SIZE)), offset(0), full(false) {}
 
@@ -34,11 +33,12 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
   const char *data = static_cast<const char *>(buf);
   size_t remaining = count;
 
-  std::lock_guard<std::mutex> lock(mtx);
+  std::lock_guard<std::mutex> lock(mtx); // Ensure thread safety
 
   auto &meta = file_metadata[filename];
   size_t &current_chunk_index = current_file_chunk_index[filename];
 
+  // Initialize file metadata if this is the first write
   if (meta.chunk_indexes.empty())
   {
     current_chunk_index = global_chunk_index;
@@ -50,6 +50,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     CheckpointChunk *chunk = get_current_chunk(current_chunk_index);
     size_t space_in_chunk = CHUNK_SIZE - chunk->offset;
 
+    // If chunk is full, send it and allocate a new one
     if (space_in_chunk == 0)
     {
       chunk->full = true;
@@ -61,6 +62,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
       space_in_chunk = CHUNK_SIZE;
     }
 
+    // Write data to the current chunk
     size_t to_write = std::min(remaining, space_in_chunk);
     std::memcpy(chunk->buffer.get() + chunk->offset, data, to_write);
     chunk->offset += to_write;
@@ -68,6 +70,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     remaining -= to_write;
     data += to_write;
 
+    // Mark chunk as full and send it if completely filled
     if (chunk->offset == CHUNK_SIZE)
     {
       chunk->full = true;
@@ -95,6 +98,7 @@ void CheckpointManager::finalize_file_write(const std::string &filename)
   size_t &current_chunk_index = current_file_chunk_index[filename];
   CheckpointChunk *chunk = get_current_chunk(current_chunk_index);
 
+  // Send any remaining data in the last chunk
   size_t file_data_in_chunk = meta.size % CHUNK_SIZE;
   if (file_data_in_chunk > 0)
   {
