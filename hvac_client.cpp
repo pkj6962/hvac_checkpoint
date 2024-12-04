@@ -108,6 +108,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
   }
 
   bool tracked = false;
+  bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
+
   try
   {
     std::string ppath = std::filesystem::canonical(path).parent_path();
@@ -117,6 +119,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
     int access_mode = flags & O_ACCMODE;
     L4C_INFO("mode: %d", access_mode);
+
     if ((flags & O_ACCMODE) == O_RDONLY)
     {
 
@@ -138,7 +141,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
       }
     }
     // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
-    else if ((flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR)
+    else if (is_write_mode)
     {
       if (hvac_checkpoint_dir != NULL)
       {
@@ -184,7 +187,14 @@ bool hvac_track_file(const char *path, int flags, int fd)
     hvac_open_state_p->done = &done;
     hvac_open_state_p->cond = &cond;
     hvac_open_state_p->mutex = &mutex;
+
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    char *current_host = getenv("PMI_RANK");
+    if (is_write_mode && host == current_host)
+    {
+      host = (host + 1) % g_hvac_server_count;
+    }
+
     L4C_INFO("Remote open - Host %d", host);
     L4C_INFO("Open a: %s", path);
     hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
