@@ -60,11 +60,13 @@ private:
   void allocate_new_chunk();
 
   /**
-   * @brief Placeholder function for sending chunk data to a remote system.
-   * @param data Pointer to the data to send.
-   * @param size Size of the data to send.
+   * @brief Sends a chunk of data associated with a file to a remote server.
+   * @param filename The name of the file associated with the chunk being sent.
+   * @param data Pointer to the chunk data to be sent. The data is transferred to the remote server.
+   * @param size The size of the chunk data to send, in bytes.
+   * @param local_fd The local file descriptor associated with the file.
    */
-  void send_chunk_to_remote(const char *data, size_t size);
+  void send_chunk_to_remote(const std::string &filename, const char *data, size_t size, int local_fd);
 
 public:
   /**
@@ -77,14 +79,16 @@ public:
    * @param filename The name of the file being written.
    * @param buf Pointer to the data to write.
    * @param count Number of bytes to write.
+   * @param local_fd The local file descriptor associated with the file being written.
    */
-  void write_checkpoint(const std::string &filename, const void *buf, size_t count);
+  void write_checkpoint(const std::string &filename, const void *buf, size_t count, int local_fd);
 
   /**
    * @brief Finalizes file writing by sending the last partially filled chunk.
    * @param filename The name of the file to finalize.
+   * @param local_fd The local file descriptor associated with the file.
    */
-  void finalize_file_write(const std::string &filename);
+  void finalize_file_write(const std::string &filename, int local_fd);
 };
 
 #endif

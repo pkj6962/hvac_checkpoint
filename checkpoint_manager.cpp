@@ -23,12 +23,12 @@ void CheckpointManager::allocate_new_chunk()
   global_chunk_index = chunks.size() - 1;
 }
 
-void CheckpointManager::send_chunk_to_remote(const char *data, size_t size)
+void CheckpointManager::send_chunk_to_remote(const std::string &filename, const char *data, size_t size, int local_fd)
 {
   // TODO add handling of FD on the remote;; maybe no need; just send with the path
 }
 
-void CheckpointManager::write_checkpoint(const std::string &filename, const void *buf, size_t count)
+void CheckpointManager::write_checkpoint(const std::string &filename, const void *buf, size_t count, int local_fd)
 {
   const char *data = static_cast<const char *>(buf);
   size_t remaining = count;
@@ -54,7 +54,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     if (space_in_chunk == 0)
     {
       chunk->full = true;
-      send_chunk_to_remote(chunk->buffer.get(), CHUNK_SIZE);
+      send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
       allocate_new_chunk();
       current_chunk_index = global_chunk_index;
       meta.chunk_indexes.push_back(global_chunk_index);
@@ -74,12 +74,12 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     if (chunk->offset == CHUNK_SIZE)
     {
       chunk->full = true;
-      send_chunk_to_remote(chunk->buffer.get(), CHUNK_SIZE);
+      send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
     }
   }
 }
 
-void CheckpointManager::finalize_file_write(const std::string &filename)
+void CheckpointManager::finalize_file_write(const std::string &filename, int local_fd)
 {
   std::lock_guard<std::mutex> lock(mtx);
 
@@ -102,6 +102,6 @@ void CheckpointManager::finalize_file_write(const std::string &filename)
   size_t file_data_in_chunk = meta.size % CHUNK_SIZE;
   if (file_data_in_chunk > 0)
   {
-    send_chunk_to_remote(chunk->buffer.get(), file_data_in_chunk);
+    send_chunk_to_remote(filename, chunk->buffer.get(), file_data_in_chunk, local_fd);
   }
 }

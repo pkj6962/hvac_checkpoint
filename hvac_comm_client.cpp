@@ -6,6 +6,7 @@
 
 #include "hvac_comm.h"
 #include "hvac_data_mover_internal.h"
+#include "checkpoint_manager.h"
 
 extern "C"
 {
@@ -33,6 +34,9 @@ ssize_t read_ret = -1;
 /* Mercury Data Caching */
 std::map<int, std::string> address_cache;
 extern std::map<int, int> fd_redir_map;
+
+/* Checkpoint manager instance for writes */
+CheckpointManager checkpointManager;
 
 /* for Fault tolerance */
 std::vector<int> timeout_counters;

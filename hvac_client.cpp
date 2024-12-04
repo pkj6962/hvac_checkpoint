@@ -301,45 +301,67 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
 ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 {
+  // TODO: revisit this for fault tolerance in case of unexpected behavior
   ssize_t bytes_written = -1;
-  hg_bool_t done = HG_FALSE;
-  pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
   if (hvac_file_tracked(fd))
   {
-    // TODO: It should be changed so that the client sends requests to the local server.
-    // Determine which server to communicate with based on the file descriptor.
+    std::string filepath = fd_map[fd];
 
-    const char *rank_str = getenv("PMI_RANK");
-    const char *world_size_str = getenv("SLURM_NTASKS");
-    int client_rank = atoi(rank_str);
-    int world_size = atoi(world_size_str);
-    // TODOL What if N(clients):1(server) model in single node?
-    int host = client_rank / (world_size / g_hvac_server_count);
-
-    L4C_INFO("NVMe buffering(write) - Host %d", host);
-
-    hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
-    hvac_rpc_state_p->bytes_written = &bytes_written;
-    hvac_rpc_state_p->done = &done;
-    hvac_rpc_state_p->cond = &cond;
-    hvac_rpc_state_p->mutex = &mutex;
-
-    // Generate the write RPC request.
-    hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
-
-    // Wait for the server to process the write request.
-    bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
-    if (bytes_written == -1)
-    {
-      fd_map.erase(fd);
-    }
+    // Write to checkpoint manager
+    checkpointManager.write_checkpoint(filepath, buf, count, fd);
+    bytes_written = count;
   }
-  L4C_INFO("Client is redirected to real_write");
-  // Non-HVAC Writes should return -1.
+  else
+  {
+    // Redirect to __real_write; handle __real_open appropriately for fd
+    bytes_written = -1;
+  }
+
   return bytes_written;
 }
+
+// ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
+// {
+//   ssize_t bytes_written = -1;
+//   hg_bool_t done = HG_FALSE;
+//   pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+//   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+//   if (hvac_file_tracked(fd))
+//   {
+//     // TODO: It should be changed so that the client sends requests to the local server.
+//     // Determine which server to communicate with based on the file descriptor.
+
+//     const char *rank_str = getenv("PMI_RANK");
+//     const char *world_size_str = getenv("SLURM_NTASKS");
+//     int client_rank = atoi(rank_str);
+//     int world_size = atoi(world_size_str);
+//     // TODOL What if N(clients):1(server) model in single node?
+//     int host = client_rank / (world_size / g_hvac_server_count);
+
+//     L4C_INFO("NVMe buffering(write) - Host %d", host);
+
+//     hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
+//     hvac_rpc_state_p->bytes_written = &bytes_written;
+//     hvac_rpc_state_p->done = &done;
+//     hvac_rpc_state_p->cond = &cond;
+//     hvac_rpc_state_p->mutex = &mutex;
+
+//     // Generate the write RPC request.
+//     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
+
+//     // Wait for the server to process the write request.
+//     bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
+//     if (bytes_written == -1)
+//     {
+//       fd_map.erase(fd);
+//     }
+//   }
+//   L4C_INFO("Client is redirected to real_write");
+//   // Non-HVAC Writes should return -1.
+//   return bytes_written;
+// }
 
 /* Need to clean this up - in theory the RPC should time out if the request hasn't been serviced we'll go to the file-system?
  * Maybe not - we'll roll to another server.
