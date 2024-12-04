@@ -189,7 +189,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
     hvac_open_state_p->mutex = &mutex;
 
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
-    char *current_host = getenv("PMI_RANK");
+    int current_host = atoi(getenv("PMI_RANK"));
     if (is_write_mode && host == current_host)
     {
       host = (host + 1) % g_hvac_server_count;
