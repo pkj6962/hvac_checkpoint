@@ -333,32 +333,25 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   struct hvac_rpc_state *hvac_rpc_state_p = (struct hvac_rpc_state *)info->arg;
   int ret;
   hvac_rpc_out_t out;
-  ssize_t writebytes = 1; // temp value for debugging
   assert(info->ret == 0);
-  /*
-if (hvac_rpc_state_p->in.offset == -1)
-{
-  writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-  L4C_DEBUG("Server rank %d: Wrote %lld bytes to the file %s", server_rank, writebytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
-}
-else{
-  writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->offset);
-  L4C_DEBUG("Server rank %d: Wrote %lld bytes to the file %s", server_rank, writebytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str());
-}
-  */
 
-  L4C_INFO("%s |  buffer: %s", fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->buffer);
-
-  out.ret = writebytes;
-
+  out.ret = 0;
   ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out);
   assert(ret == HG_SUCCESS);
 
-  HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
   L4C_INFO("Info server: Freeing Bulk Handle");
+  HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
   HG_Destroy(hvac_rpc_state_p->handle);
+
+  int access_fd = hvap_rpc_state_p->in.accessfd;
+  ssize_t writebytes = -1;
+
+  writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
+  L4C_INFO("%s |  buffer: %s", fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->buffer);
+
   free(hvac_rpc_state_p->buffer);
   free(hvac_rpc_state_p);
+  return HG_SUCCESS;
 }
 
 static hg_return_t
