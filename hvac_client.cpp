@@ -27,7 +27,6 @@ char *hvac_checkpoint_dir = NULL;
 
 pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-std::map<int, std::string> fd_map;
 std::map<int, int> fd_redir_map;
 // sy: add
 const int TIMEOUT_LIMIT = 3;
