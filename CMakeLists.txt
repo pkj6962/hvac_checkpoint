@@ -5,7 +5,7 @@ pkg_check_modules(LOG4C REQUIRED IMPORTED_TARGET log4c)
 
 
 #Dynamic Target
-add_library(hvac_client SHARED hvac.cpp hvac_client.cpp wrappers.c hvac_data_mover.cpp hvac_logging.c hvac_comm.cpp hvac_comm_client.cpp)
+add_library(hvac_client SHARED hvac.cpp hvac_client.cpp wrappers.c hvac_data_mover.cpp hvac_logging.c hvac_comm.cpp hvac_comm_client.cpp checkpoint_manager.cpp)
 target_compile_definitions(hvac_client PUBLIC HVAC_CLIENT)
 target_compile_definitions(hvac_client PUBLIC HVAC_PRELOAD)
 target_include_directories(hvac_client PRIVATE ${CMAKE_SOURCE_DIR}/include)

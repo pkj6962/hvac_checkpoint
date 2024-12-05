@@ -343,7 +343,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
   HG_Destroy(hvac_rpc_state_p->handle);
 
-  int access_fd = hvap_rpc_state_p->in.accessfd;
+  int access_fd = hvac_rpc_state_p->in.accessfd;
   ssize_t writebytes = -1;
 
   writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);

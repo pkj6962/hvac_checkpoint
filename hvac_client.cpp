@@ -11,6 +11,7 @@
 #include "hvac_logging.h"
 #include "hvac_comm.h"
 #include "hvac_hashing.h"
+#include "checkpoint_manager.h"
 
 #define VIRTUAL_NODE_CNT 100
 
@@ -32,6 +33,7 @@ std::map<int, int> fd_redir_map;
 const int TIMEOUT_LIMIT = 3;
 HashRing<string, string> *hashRing; // ptr to the consistent hashing object
 vector<bool> failure_flags;
+CheckpointManager checkpoint_manager;
 
 /* Devise a way to safely call this and initialize early */
 static void __attribute__((constructor)) hvac_client_init()
@@ -309,7 +311,7 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     std::string filepath = fd_map[fd];
 
     // Write to checkpoint manager
-    checkpointManager.write_checkpoint(filepath, buf, count, fd);
+    checkpoint_manager.write_checkpoint(filepath, buf, count, fd);
     bytes_written = count;
   }
   else

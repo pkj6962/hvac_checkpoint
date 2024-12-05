@@ -1,6 +1,7 @@
 #include "checkpoint_manager.h"
 #include "hvac_comm.h"
 
+int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
 CheckpointChunk::CheckpointChunk()
     : buffer(std::make_unique<char[]>(CHUNK_SIZE)), offset(0), full(false) {}
 
@@ -31,11 +32,11 @@ void CheckpointManager::send_chunk_to_remote(const std::string &filename, const 
   pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-  int host std::hash<std::string>{}(filename) % g_hvac_server_count;
+  int host = std::hash<std::string>{}(filename) % server_count;
   int current_host = atoi(getenv("PMI_RANK"));
   if (host == current_host)
   {
-    host = (host + 1) % g_hvac_server_count;
+    host = (host + 1) % server_count;
   }
 
   hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
