@@ -33,7 +33,6 @@ std::map<int, int> fd_redir_map;
 const int TIMEOUT_LIMIT = 3;
 HashRing<string, string> *hashRing; // ptr to the consistent hashing object
 vector<bool> failure_flags;
-CheckpointManager checkpoint_manager;
 
 /* Devise a way to safely call this and initialize early */
 static void __attribute__((constructor)) hvac_client_init()

@@ -24,9 +24,7 @@ pthread_mutex_t path_map_mutex = PTHREAD_MUTEX_INITIALIZER;
 map<int, string> fd_to_path;
 map<string, string> path_cache_map;
 queue<string> data_queue;
-
-/* Prefix to identify write operations */
-const string WRITE_PREFIX = "HVAC_WRITE_PREFIX:";
+string WRITE_PREFIX = "HVAC_WRITE_PREFIX:";
 
 void *hvac_data_mover_fn(void *args)
 {

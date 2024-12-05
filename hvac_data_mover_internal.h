@@ -13,7 +13,8 @@ extern pthread_mutex_t path_map_mutex;
 extern queue<string> data_queue;
 extern map<int, string> fd_to_path;
 extern map<string, string> path_cache_map;
-
+/* Prefix to identify write operations */
+extern string WRITE_PREFIX;
 
 void *hvac_data_mover_fn(void *args);
 #endif

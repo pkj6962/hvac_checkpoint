@@ -8,6 +8,7 @@
 #include <mutex>
 #include <cstring>
 
+CheckpointManager checkpoint_manager;
 // Define the size of each data chunk
 #define CHUNK_SIZE (1L * 24 * 1024 * 1024) ///< Chunk size is 24 MB
 
