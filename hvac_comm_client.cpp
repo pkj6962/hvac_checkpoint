@@ -471,7 +471,7 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *
   hvac_rpc_state_p->size = count;
   hvac_rpc_state_p->offset = offset;
   hvac_rpc_state_p->local_fd = localfd;
-  hvac_rpc_state_p->buffer = buffer;
+  hvac_rpc_state_p->buffer = const_cast<void *>(buffer);
   assert(hvac_rpc_state_p->buffer);
 
   hvac_rpc_state_p->bulk_handle = HG_BULK_NULL;
