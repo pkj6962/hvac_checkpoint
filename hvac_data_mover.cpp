@@ -59,8 +59,8 @@ void *hvac_data_mover_fn(void *args)
     {
       string entry = local_list.front();
 
-      bool is_write = (entry.compare(0, strlen(WRITE_PREFIX), WRITE_PREFIX) == 0);
-      string path = is_write ? entry.substr(strlen(WRITE_PREFIX)) : entry;
+      bool is_write = (entry.compare(0, WRITE_PREFIX.length(), WRITE_PREFIX) == 0);
+      string path = is_write ? entry.substr(WRITE_PREFIX.length()) : entry;
 
       try
       {
