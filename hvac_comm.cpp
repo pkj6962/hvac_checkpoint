@@ -570,6 +570,9 @@ hvac_open_rpc_handler(hg_handle_t handle)
     if (ppath.find(test) != string::npos)
     {
       redir_path = hvac_get_bbpath(redir_path);
+      pthread_mutex_lock(&path_map_mutex);
+      path_cache_map[in.path] = redir_path;
+      pthread_mutex_unlock(&path_map_mutex);
       out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
       L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
     }

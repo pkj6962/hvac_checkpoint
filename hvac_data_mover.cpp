@@ -69,14 +69,12 @@ void *hvac_data_mover_fn(void *args)
         if (is_write)
         {
           filesystem::path filepath = path;
-          string filename = filepath.filename().string();
-          string local_path = nvmepath + string("/") + filename;
-          fs::copy(local_path, path);
-          L4C_INFO("Succeeded to copy %s to PFS", path.c_str());
 
           pthread_mutex_lock(&path_map_mutex);
-          path_cache_map[path] = local_path;
+          string local_path = path_cache_map[path];
           pthread_mutex_unlock(&path_map_mutex);
+          fs::copy(local_path, path);
+          L4C_INFO("Succeeded to copy %s to PFS", path.c_str());
         }
         else
         {
