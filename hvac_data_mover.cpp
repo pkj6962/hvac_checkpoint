@@ -25,6 +25,9 @@ map<int, string> fd_to_path;
 map<string, string> path_cache_map;
 queue<string> data_queue;
 
+/* Prefix to identify write operations */
+const string WRITE_PREFIX = "HVAC_WRITE_PREFIX:";
+
 void *hvac_data_mover_fn(void *args)
 {
   queue<string> local_list;
@@ -36,7 +39,6 @@ void *hvac_data_mover_fn(void *args)
 
   string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";
   L4C_INFO("BBpath: %s", getenv("BBPATH"));
-  L4C_INFO("nvmepath: %s", nvmepath.c_str());
 
   while (1)
   {
@@ -55,30 +57,46 @@ void *hvac_data_mover_fn(void *args)
 
     pthread_mutex_unlock(&data_mutex);
 
-    /* Now we copy the local list to the NVMes*/
     while (!local_list.empty())
     {
-      char *newdir = (char *)malloc(strlen(nvmepath.c_str()) + 1);
-      strcpy(newdir, nvmepath.c_str());
-      mkdtemp(newdir);
-      string dirpath = newdir;
-      string filename = dirpath + string("/") + fs::path(local_list.front().c_str()).filename().string();
+      string entry = local_list.front();
+
+      bool is_write = (entry.compare(0, strlen(WRITE_PREFIX), WRITE_PREFIX) == 0);
+      string path = is_write ? entry.substr(strlen(WRITE_PREFIX)) : entry;
 
       try
       {
-        L4C_INFO("data mover:a");
-        fs::copy(local_list.front(), filename);
+        if (is_write)
+        {
+          filesystem::path filepath = path;
+          string filename = filepath.filename().string();
+          string local_path = nvmepath + string("/") + filename;
+          fs::copy(local_path, path);
+          L4C_INFO("Succeeded to copy %s to PFS", path.c_str());
 
-        L4C_INFO("Succeeded to copy %s to %s\n", local_list.front().c_str(), filename.c_str());
+          pthread_mutex_lock(&path_map_mutex);
+          path_cache_map[path] = local_path;
+          pthread_mutex_unlock(&path_map_mutex);
+        }
+        else
+        {
+          char *newdir = (char *)malloc(strlen(nvmepath.c_str()) + 1);
+          strcpy(newdir, nvmepath.c_str());
+          mkdtemp(newdir);
+          string dirpath = newdir;
+          free(newdir);
+          string filename = dirpath + string("/") + fs::path(path).filename().string();
+          fs::copy(path, filename);
+          L4C_INFO("Succeeded to copy %s to %s\n", local_list.front().c_str(), filename.c_str());
 
-        pthread_mutex_lock(&path_map_mutex); // sy: add
-        path_cache_map[local_list.front()] = filename;
-        pthread_mutex_unlock(&path_map_mutex); // sy: add
+          pthread_mutex_lock(&path_map_mutex); // sy: add
+          path_cache_map[path] = filename;
+          pthread_mutex_unlock(&path_map_mutex); // sy: add
+        }
       }
       catch (...)
       {
-
-        L4C_INFO("Failed to copy %s to %s %d\n", local_list.front().c_str(), filename.c_str(), errno);
+        L4C_INFO("Failed to copy %s\n", local_list.front().c_str(), errno);
         perror("Copy error:");
       }
 

@@ -621,6 +621,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
 
   // Signal to the data mover to copy the file
   pthread_mutex_lock(&path_map_mutex); // sy: add
+  bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
   if (flags & O_ACCMODE == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
   {
     pthread_mutex_lock(&data_mutex);
@@ -630,6 +631,17 @@ hvac_close_rpc_handler(hg_handle_t handle)
     pthread_mutex_unlock(&data_mutex);
     nvme_flag = 1;
   }
+
+  /* Add the file with write prefix for writes */
+  if (is_write_mode)
+  {
+    std::string write_path = WRITE_PREFIX + fd_to_path[in.fd];
+    pthread_mutex_lock(&data_mutex);
+    data_queue.push(write_path);
+    pthread_cond_signal(&data_cond);
+    pthread_mutex_unlock(&data_mutex);
+  }
+
   pthread_mutex_unlock(&path_map_mutex); // sy: add
 
   fd_to_path.erase(in.fd);
