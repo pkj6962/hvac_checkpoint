@@ -8,8 +8,8 @@
 
 #include <pthread.h>
 #include <string.h>
-#include <cerrno> 
-#include <cstring> 
+#include <cerrno>
+#include <cstring>
 
 #include "hvac_logging.h"
 #include "hvac_data_mover_internal.h"
@@ -21,66 +21,69 @@ pthread_cond_t data_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t path_map_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-map<int,string> fd_to_path;
+map<int, string> fd_to_path;
 map<string, string> path_cache_map;
 queue<string> data_queue;
 
 void *hvac_data_mover_fn(void *args)
 {
-    queue<string> local_list;
+  queue<string> local_list;
 
-    if (getenv("BBPATH") == NULL){
-        L4C_ERR("Set BBPATH Prior to using HVAC");        
+  if (getenv("BBPATH") == NULL)
+  {
+    L4C_ERR("Set BBPATH Prior to using HVAC");
+  }
+
+  string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";
+  L4C_INFO("BBpath: %s", getenv("BBPATH"));
+  L4C_INFO("nvmepath: %s", nvmepath.c_str());
+
+  while (1)
+  {
+    pthread_mutex_lock(&data_mutex);
+
+    while (data_queue.empty())
+    {
+      pthread_cond_wait(&data_cond, &data_mutex);
+    }
+    /* We can do stuff here when signaled */
+    while (!data_queue.empty())
+    {
+      local_list.push(data_queue.front());
+      data_queue.pop();
     }
 
-    string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";    
-    L4C_INFO("BBpath: %s", getenv("BBPATH"));
-    L4C_INFO("nvmepath: %s", nvmepath.c_str());
+    pthread_mutex_unlock(&data_mutex);
 
+    /* Now we copy the local list to the NVMes*/
+    while (!local_list.empty())
+    {
+      char *newdir = (char *)malloc(strlen(nvmepath.c_str()) + 1);
+      strcpy(newdir, nvmepath.c_str());
+      mkdtemp(newdir);
+      string dirpath = newdir;
+      string filename = dirpath + string("/") + fs::path(local_list.front().c_str()).filename().string();
 
-    while (1) {
-        pthread_mutex_lock(&data_mutex);
-        
-		while(data_queue.empty()){
-			pthread_cond_wait(&data_cond, &data_mutex);
-        }
-        /* We can do stuff here when signaled */
-        while (!data_queue.empty()){
-            local_list.push(data_queue.front());
-            data_queue.pop();
-        }
+      try
+      {
+        L4C_INFO("data mover:a");
+        fs::copy(local_list.front(), filename);
 
-        pthread_mutex_unlock(&data_mutex);
+        L4C_INFO("Succeeded to copy %s to %s\n", local_list.front().c_str(), filename.c_str());
 
-        /* Now we copy the local list to the NVMes*/
-        while (!local_list.empty())
-        {
-            char *newdir = (char *)malloc(strlen(nvmepath.c_str())+1);
-            strcpy(newdir,nvmepath.c_str());
-            mkdtemp(newdir);
-            string dirpath = newdir;
-            string filename = dirpath + string("/") + fs::path(local_list.front().c_str()).filename().string();
+        pthread_mutex_lock(&path_map_mutex); // sy: add
+        path_cache_map[local_list.front()] = filename;
+        pthread_mutex_unlock(&path_map_mutex); // sy: add
+      }
+      catch (...)
+      {
 
-            try{
-                L4C_INFO("data mover:a"); 
-                fs::copy(local_list.front(), filename);
-                
-                L4C_INFO("Succeeded to copy %s to %s\n",local_list.front().c_str(), filename.c_str());
+        L4C_INFO("Failed to copy %s to %s %d\n", local_list.front().c_str(), filename.c_str(), errno);
+        perror("Copy error:");
+      }
 
-				pthread_mutex_lock(&path_map_mutex); //sy: add
-            	path_cache_map[local_list.front()] = filename;
-				pthread_mutex_unlock(&path_map_mutex); //sy: add
-							
-	
-            } catch (...)
-            {
-
-                L4C_INFO("Failed to copy %s to %s %d\n",local_list.front().c_str(), filename.c_str(), errno);
-                perror("Copy error:");
-            }        
-
-            local_list.pop();
-        }
+      local_list.pop();
     }
-    return NULL;
+  }
+  return NULL;
 }

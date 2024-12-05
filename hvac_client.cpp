@@ -511,6 +511,7 @@ void hvac_remote_close(int fd)
 {
   if (hvac_file_tracked(fd))
   {
+    // TODO: Add finalize checkpoint manager file transfer
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     /*
         string hostname = hashRing->GetNode(fd_map[fd]);
