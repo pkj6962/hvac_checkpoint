@@ -8,6 +8,7 @@ extern "C"
 #include <mercury_proc_string.h>
 }
 
+#include <map>
 #include <string>
 #include <vector>
 #include <mutex>
@@ -17,9 +18,9 @@ extern "C"
 #include <stdio.h>
 #include <sys/time.h>
 
+extern std::map<int, std::string> fd_map;
 using namespace std;
 
-std::map<int, std::string> fd_map;
 /* struct used to carry state of overall operation across callbacks */
 struct hvac_rpc_state_t_client
 {

@@ -90,5 +90,5 @@ public:
    */
   void finalize_file_write(const std::string &filename, int local_fd);
 };
-CheckpointManager checkpoint_manager;
+extern CheckpointManager checkpoint_manager;
 #endif
