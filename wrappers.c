@@ -131,7 +131,6 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
             //L4C_INFO("Tracking %s failed", pathname); 
 		}
 	}
-
 	return ret;
 }
 

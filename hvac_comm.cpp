@@ -168,7 +168,6 @@ void hvac_init_comm(hg_bool_t listen)
     if (getenv("HVAC_CHECKPOINT_DIR") != NULL)
       hvac_checkpoint_dir = getenv("HVAC_CHECKPOINT_DIR");
   }
-
   L4C_INFO("Mecury initialized");
   // TODO The engine creates a pthread here to do the listening and progress work
   // I need to understand this better I don't want to create unecessary work for the client
@@ -292,7 +291,6 @@ hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   }
 
   // sy: commented
-
   //	 char *hex_buf = buffer_to_hex(hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
   //          if (hex_buf) {
   //            L4C_INFO("Buffer content before rpc transfer: %s", hex_buf);
@@ -540,7 +538,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     L4C_DEBUG("HG_Get_info failed\n");
     return (hg_return_t)ret;
   }
-
+  
   string ppath = filesystem::canonical(redir_path.c_str()).parent_path();
 
   // Read IO Mode
@@ -567,6 +565,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
   if (!hvac_checkpoint_dir.empty())
   {
     string test = filesystem::canonical(hvac_checkpoint_dir.c_str());
+    
     if (ppath.find(test) != string::npos)
     {
       redir_path = hvac_get_bbpath(redir_path);
@@ -576,6 +575,9 @@ hvac_open_rpc_handler(hg_handle_t handle)
       out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
       L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
     }
+    
+
+
   }
   fd_to_path[out.ret_status] = in.path;
   L4C_INFO("Open C");

@@ -139,6 +139,23 @@ bool hvac_track_file(const char *path, int flags, int fd)
         fd_map[fd] = std::filesystem::canonical(path);
         tracked = true;
       }
+      // TODO: For the checkpoint read for failure recovery: 
+      // TODO: If it is checkpoint read and it is elastric recovery
+      // TODO: Then we should query HVAC metadata server for the checkpoint Server 
+      /*
+      if (!checkpoint_dir)
+      {
+          test <- canonical(hvac_checkpoint_dir)
+          if (parent_path_of_PATH.includes(test))
+          {
+              It sends *DRAM_FILE_PATH to hvac_metadata_server          
+              *prefix added
+          }
+      }
+      */
+
+
+
     }
     // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
     else if (is_write_mode)
@@ -188,18 +205,19 @@ bool hvac_track_file(const char *path, int flags, int fd)
     hvac_open_state_p->cond = &cond;
     hvac_open_state_p->mutex = &mutex;
 
+    
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     int current_host = atoi(getenv("PMI_RANK"));
+    //TODO: Invalidate host update when the target server is on local. 
     if (is_write_mode && host == current_host)
     {
       host = (host + 1) % g_hvac_server_count;
     }
 
     L4C_INFO("Remote open - Host %d", host);
-    L4C_INFO("Open a: %s", path);
     hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
-    L4C_INFO("Open b: %s", path);
     hvac_client_block(host, &done, &cond, &mutex);
+
   }
 
   return tracked;
