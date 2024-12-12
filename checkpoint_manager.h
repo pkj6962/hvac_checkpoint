@@ -46,6 +46,8 @@ private:
   std::vector<std::unique_ptr<CheckpointChunk>> chunks;             ///< Collection of all chunks.
   std::mutex mtx;                                                   ///< Mutex for thread-safety.
   size_t global_chunk_index = 0;                                    ///< Global index for current chunk.
+  std::unordered_map<int, std::string> fd_to_path_map;              ///< Maps file descriptors to their paths.
+  int current_fd = 0;                                               ///< Integer pointing to latest fd.
 
   /**
    * @brief Retrieves the current chunk or allocates a new one if the index exceeds existing chunks.
@@ -58,15 +60,6 @@ private:
    * @brief Allocates a new chunk and updates the global chunk index.
    */
   void allocate_new_chunk();
-
-  /**
-   * @brief Sends a chunk of data associated with a file to a remote server.
-   * @param filename The name of the file associated with the chunk being sent.
-   * @param data Pointer to the chunk data to be sent. The data is transferred to the remote server.
-   * @param size The size of the chunk data to send, in bytes.
-   * @param local_fd The local file descriptor associated with the file.
-   */
-  void send_chunk_to_remote(const std::string &filename, const char *data, size_t size, int local_fd);
 
 public:
   /**
@@ -88,7 +81,18 @@ public:
    * @param filename The name of the file to finalize.
    * @param local_fd The local file descriptor associated with the file.
    */
-  void finalize_file_write(const std::string &filename, int local_fd);
+  int finalize_file_write(const std::string &filename, int local_fd);
+
+  /**
+   * @brief Reads from a file at a specified offset.
+   * @param fd The file descriptor to read from.
+   * @param buf Buffer to store the read data.
+   * @param count Number of bytes to read.
+   * @param offset Offset in the file to read from.
+   * @return Number of bytes read, 0 on EOF, or -1 on error.
+   */
+  ssize_t pread(int fd, void *buf, size_t count, off_t offset);
 };
+
 extern CheckpointManager checkpoint_manager;
 #endif
