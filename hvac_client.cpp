@@ -98,8 +98,147 @@ void initialize_hash_ring(int serverCount, int vnodes)
   failure_flags.resize(serverCount, false);
 }
 
-// New version of HVAC_TRACK_FILE
+// New version of HVAC_TRACK_FILE 
+bool hvac_track_file(const char *path, int flags, int fd)
+{
+    if (strstr(path, ".ports.cfg.") != NULL)
+    {
+        return false;
+    }
 
+    bool tracked = false;
+    bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
+
+    try
+    {
+        std::string ppath = std::filesystem::canonical(path).parent_path();
+        L4C_INFO("path: %s", path);
+
+        // Check if the file is for reading (existing HVAC_DATA_DIR tracking)
+
+        int access_mode = flags & O_ACCMODE;
+        L4C_INFO("mode: %d", access_mode);
+
+        if ((flags & O_ACCMODE) == O_RDONLY)
+        {
+            if (hvac_data_dir != NULL)
+            {
+                std::string test = std::filesystem::canonical(hvac_data_dir);
+                if (ppath.find(test) != std::string::npos)
+                {
+                    L4C_INFO("Tracking used HVAC_DATA_DIR file %s", path);
+                    fd_map[fd] = std::filesystem::canonical(path);
+                    tracked = true;
+                }
+            }
+            else if (ppath == std::filesystem::current_path())
+            {
+                L4C_INFO("Tracking used CWD file %s", path);
+                fd_map[fd] = std::filesystem::canonical(path);
+                tracked = true;
+            }
+
+            // Add logic for checkpoint read via Metadata server
+            if (tracked)
+            {
+                int metadata_server = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+
+                // Initialize condition variable and mutex for the request
+                hvac_open_state_t *state;
+                pthread_cond_t cond;
+                pthread_mutex_t mutex;
+                hg_bool_t done = HG_FALSE;
+
+                pthread_cond_init(&cond, NULL);
+                pthread_mutex_init(&mutex, NULL);
+
+                state = (hvac_open_state_t *)malloc(sizeof(hvac_open_state_t));
+                state->done = &done;
+                state->cond = &cond;
+                state->mutex = &mutex;
+                state->local_fd = fd;
+
+                L4C_INFO("Sending RPC to Metadata server: %d", metadata_server);
+                hvac_client_comm_gen_open_rpc(metadata_server, fd_map[fd], fd, state);
+
+                // Wait for the response
+                hvac_client_block(metadata_server, &done, &cond, &mutex);
+
+                // Cleanup
+                pthread_cond_destroy(&cond);
+                pthread_mutex_destroy(&mutex);
+                
+            }
+        }
+        else if (is_write_mode)
+        {
+            if (hvac_checkpoint_dir != NULL)
+            {
+                std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
+                if (ppath.find(test) != std::string::npos)
+                {
+                    L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
+                    fd_map[fd] = std::filesystem::canonical(path);
+                    tracked = true;
+                }
+
+                if (tracked)
+                {
+                    // Initialize variables for server communication
+                    hvac_open_state_t *states[3];
+                    pthread_cond_t conds[3];
+                    pthread_mutex_t mutexes[3];
+                    hg_bool_t done[3] = {HG_FALSE, HG_FALSE, HG_FALSE};
+
+                    // Determine server ranks
+                    int local_server = atoi(getenv("PMI_RANK"));
+                    int metadata_server = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+                    int replica_server = (metadata_server + 1) % g_hvac_server_count;
+
+                    int servers[3] = {local_server, metadata_server, replica_server};
+
+                    // Send RPC requests to all three servers
+                    for (int i = 0; i < 3; i++)
+                    {
+                        pthread_cond_init(&conds[i], NULL);
+                        pthread_mutex_init(&mutexes[i], NULL);
+
+                        states[i] = (hvac_open_state_t *)malloc(sizeof(hvac_open_state_t));
+                        states[i]->done = &done[i];
+                        states[i]->cond = &conds[i];
+                        states[i]->mutex = &mutexes[i];
+                        states[i]->local_fd = fd;
+
+                        L4C_INFO("Sending RPC to server: %d", servers[i]);
+                        hvac_client_comm_gen_open_rpc(servers[i], fd_map[fd], fd, states[i]);
+                    }
+
+                    // Wait for responses from all three servers
+                    for (int i = 0; i < 3; i++)
+                    {
+                        L4C_INFO("Waiting for response from server: %d", servers[i]);
+                        hvac_client_block(servers[i], &done[i], &conds[i], &mutexes[i]);
+
+                        // Cleanup
+                        pthread_cond_destroy(&conds[i]);
+                        pthread_mutex_destroy(&mutexes[i]);
+                        
+                    }
+                }
+            }
+        }
+    }
+    catch (...)
+    {
+        // Handle exceptions if path canonicalization fails
+        L4C_INFO("Process reached here");
+    }
+
+    return tracked;
+}
+
+// New version of HVAC_TRACK_FILE
+/*
 bool hvac_track_file(const char *path, int flags, int fd)
 {
   if (strstr(path, ".ports.cfg.") != NULL)
@@ -139,23 +278,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
         fd_map[fd] = std::filesystem::canonical(path);
         tracked = true;
       }
-      // TODO: For the checkpoint read for failure recovery: 
-      // TODO: If it is checkpoint read and it is elastric recovery
-      // TODO: Then we should query HVAC metadata server for the checkpoint Server 
-      /*
-      if (!checkpoint_dir)
-      {
-          test <- canonical(hvac_checkpoint_dir)
-          if (parent_path_of_PATH.includes(test))
-          {
-              It sends *DRAM_FILE_PATH to hvac_metadata_server          
-              *prefix added
-          }
-      }
-      */
-
-
-
+      
+  
     }
     // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
     else if (is_write_mode)
@@ -222,6 +346,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
   return tracked;
 }
+*/
 
 /*
 bool hvac_track_file(const char *path, int flags, int fd)
@@ -527,24 +652,34 @@ ssize_t hvac_remote_lseek(int fd, int offset, int whence)
 
 void hvac_remote_close(int fd)
 {
+    if (hvac_file_tracked(fd))
+    {
+        int local_server = atoi(getenv("PMI_RANK"));
+        int metadata_server = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+        int replica_server = (metadata_server + 1) % g_hvac_server_count;
+
+        int servers[3] = {local_server, metadata_server, replica_server};
+        hvac_rpc_state_t_close *states[3];
+
+        for (int i = 0; i < 3; i++)
+        {
+            states[i] = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));
+            states[i]->done = false;
+            states[i]->timeout = false;
+            states[i]->host = servers[i];
+            hvac_client_comm_gen_close_rpc(servers[i], fd, states[i]);
+        }
+        // fd_redir_map.erase(fd);
+    }
+}
+/*
+void hvac_remote_close(int fd)
+{
   if (hvac_file_tracked(fd))
   {
     // TODO: Add finalize checkpoint manager file transfer
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
-    /*
-        string hostname = hashRing->GetNode(fd_map[fd]);
-        host = hashRing->ConvertHostToNumber(hostname);
-        {
-            std::lock_guard<std::mutex> lock(timeout_mutex);
-            if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
-                L4C_INFO("Host %d reached timeout limit, skipping", host);
-                hashRing->RemoveNode(hostname);
-                failure_flags[host] = true;
-        return; // sy: skip further processing for this node
-            }
-        }
-        */
-    // sy: add
+    
     hvac_rpc_state_t_close *rpc_state = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));
     rpc_state->done = false;
     rpc_state->timeout = false;
@@ -552,6 +687,7 @@ void hvac_remote_close(int fd)
     hvac_client_comm_gen_close_rpc(host, fd, rpc_state);
   }
 }
+*/
 
 bool hvac_file_tracked(int fd)
 {

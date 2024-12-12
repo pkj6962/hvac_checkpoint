@@ -84,6 +84,9 @@ hvac_open_cb(const struct hg_cb_info *info)
   HG_Get_output(info->info.forward.handle, &out);
   gettimeofday(&log_info.clocktime, NULL);
   fd_redir_map[hvac_open_state_p->local_fd] = out.ret_status;
+
+
+
   //	L4C_INFO("Open RPC Returned FD %d\n",out.ret_status);
 
   // sy: add - logging code
@@ -385,18 +388,54 @@ ssize_t hvac_seek_block()
 
 void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_close *rpc_state)
 {
+    hg_addr_t svr_addr;
+    hvac_close_in_t in;
+    hg_handle_t handle;
+    int ret;
+
+    svr_addr = hvac_client_comm_lookup_addr(svr_hash);
+    rpc_state->addr = svr_addr;
+    rpc_state->host = svr_hash;
+
+    hvac_comm_create_handle(svr_addr, hvac_client_close_id, &handle);
+    rpc_state->handle = handle;
+
+    // Metadata-specific logic
+    if (svr_hash == std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count) // Metadata server
+    {
+        in.file_path = fd_map[fd];
+        in.fd = fd_redir_map[fd];
+        in.checkpoint_server_rank = atoi(getenv("PMI_RANK"));
+    }
+    else
+    {
+        in.fd = fd_redir_map[fd];
+        in.client_rank = client_rank;
+    }
+
+    ret = HG_Forward(handle, NULL, NULL, &in);
+    assert(ret == 0);
+
+    HG_Destroy(handle);
+    hvac_comm_free_addr(svr_addr);
+}
+
+
+/*
+void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_close *rpc_state)
+{
   hg_addr_t svr_addr;
   hvac_close_in_t in;
   hg_handle_t handle;
   int ret;
-  checkpoint_manager.finalize_file_write(fd_map[fd], fd);
-  /* Get address */
+  // checkpoint_manager.finalize_file_write(fd_map[fd], fd);
+  //  Get address 
   L4C_INFO("Close:");
   svr_addr = hvac_client_comm_lookup_addr(svr_hash);
   rpc_state->addr = svr_addr; // sy: add
   rpc_state->host = svr_hash;
 
-  /* create create handle to represent this rpc operation */
+  // create create handle to represent this rpc operation 
   hvac_comm_create_handle(svr_addr, hvac_client_close_id, &handle);
   rpc_state->handle = handle; // sy: add
 
@@ -413,6 +452,11 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
 
   return;
 }
+*/
+
+
+
+
 
 void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_open_state_t *hvac_open_state_p)
 {

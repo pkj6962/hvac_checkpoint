@@ -6,6 +6,7 @@
         "format": "cpp",
         "queue": "cpp",
         "map": "cpp",
-        "~": "cpp"
+        "~": "cpp",
+        "string": "cpp"
     }
 }

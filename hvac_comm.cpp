@@ -538,7 +538,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     L4C_DEBUG("HG_Get_info failed\n");
     return (hg_return_t)ret;
   }
-  
+
   string ppath = filesystem::canonical(redir_path.c_str()).parent_path();
 
   // Read IO Mode
@@ -575,9 +575,6 @@ hvac_open_rpc_handler(hg_handle_t handle)
       out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
       L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
     }
-    
-
-
   }
   fd_to_path[out.ret_status] = in.path;
   L4C_INFO("Open C");

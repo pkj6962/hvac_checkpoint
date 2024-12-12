@@ -103,7 +103,7 @@ MERCURY_GEN_PROC(hvac_seek_out_t, ((int32_t)(ret)))
 MERCURY_GEN_PROC(hvac_seek_in_t, ((int32_t)(fd))((int32_t)(offset))((int32_t)(whence)))
 
 // Close Handler input arg
-MERCURY_GEN_PROC(hvac_close_in_t, ((int32_t)(fd))((int32_t)(client_rank)))
+MERCURY_GEN_PROC(hvac_close_in_t, ((int32_t)(fd))((int32_t)(client_rank))((string)(file_path))((int32_t)(checkpoint_server_rank)))
 
 // General
 void hvac_init_comm(hg_bool_t listen);
