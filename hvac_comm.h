@@ -18,7 +18,7 @@ extern "C"
 #include <stdio.h>
 #include <sys/time.h>
 
-extern std::map<int, std::string> fd_map;
+// extern std::map<int, std::string> fd_map;
 using namespace std;
 
 /* struct used to carry state of overall operation across callbacks */

@@ -65,7 +65,6 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     current_chunk_index = global_chunk_index;
     meta.chunk_indexes.push_back(global_chunk_index);
   }
-
   while (remaining > 0)
   {
     CheckpointChunk *chunk = get_current_chunk(current_chunk_index);
@@ -75,7 +74,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     if (space_in_chunk == 0)
     {
       chunk->full = true;
-      send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
+      // send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
       allocate_new_chunk();
       current_chunk_index = global_chunk_index;
       meta.chunk_indexes.push_back(global_chunk_index);
@@ -95,7 +94,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     if (chunk->offset == CHUNK_SIZE)
     {
       chunk->full = true;
-      send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
+      // send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
     }
   }
 }

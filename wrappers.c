@@ -327,8 +327,6 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 
     const char *path = hvac_get_path(fd);
     if (path) {
-        L4C_INFO("Write to tracked file %s of size %ld", path, count);
-
         // Handle caching logic here
         ssize_t cached_write = hvac_cache_write(fd, buf, count);
         if (cached_write > 0) {

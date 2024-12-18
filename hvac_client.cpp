@@ -27,6 +27,7 @@ char *hvac_checkpoint_dir = NULL;
 
 pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+std::map<int, std::string> fd_map;
 std::map<int, int> fd_redir_map;
 // sy: add
 const int TIMEOUT_LIMIT = 3;
@@ -326,8 +327,10 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
   {
     std::string filepath = fd_map[fd];
 
-    // Write to checkpoint manager
-    // checkpoint_manager.write_checkpoint(filepath, buf, count, fd);
+    hg_bool_t done = HG_FALSE;
+    pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
     hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
     hvac_rpc_state_p->bytes_written = &bytes_written;

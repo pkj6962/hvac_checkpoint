@@ -1,5 +1,6 @@
 #include "hvac_comm.h"
 #include "hvac_data_mover_internal.h"
+#include "checkpoint_manager.h"
 
 extern "C"
 {
@@ -337,7 +338,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out);
   assert(ret == HG_SUCCESS);
 
-  L4C_INFO("Info server: Freeing Bulk Handle");
+  // L4C_INFO("Info server: Freeing Bulk Handle");
   HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
   HG_Destroy(hvac_rpc_state_p->handle);
 
@@ -345,8 +346,10 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   ssize_t writebytes = -1;
 
   // TODO: checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
+  checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
+
   // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-  L4C_INFO("%s |  buffer: %s", fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->buffer);
+  L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
 
   free(hvac_rpc_state_p->buffer);
   free(hvac_rpc_state_p);
@@ -575,10 +578,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
       pthread_mutex_unlock(&path_map_mutex);
       out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
       L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
-    }
-    
-
-
+    }  
   }
   fd_to_path[out.ret_status] = in.path;
   L4C_INFO("Open C");
@@ -616,6 +616,24 @@ hvac_close_rpc_handler(hg_handle_t handle)
   //    assert(ret == 0);
   //	out.done = ret;
 
+  /*
+  TODO: 파일 DRAM에 잘 써졌는지 디버깅 필요... 
+  총 파일 크기가 PFS 상 파일 크기와 맞는지 확인 필요
+  FilePath로써 체크포인트 청크 리스트 개수 등 파악해야   
+  */  
+  if (flags & O_ACCMODE == O_WRONLY)
+  {
+    string filename =  fd_to_path[in.fd]; 
+    auto &meta = checkpoint_manager.file_metadata[filename];
+    L4C_INFO("%s: %lld in DRAM", filename, meta.size); 
+  }
+
+
+
+
+
+
+
   // sy: add - logging code
   hgi = HG_Get_info(handle);
   if (!hgi)
@@ -624,6 +642,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     fd_to_path.erase(in.fd);
     return (hg_return_t)ret;
   }
+
 
   // Signal to the data mover to copy the file
   pthread_mutex_lock(&path_map_mutex); // sy: add
@@ -643,7 +662,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
   {
     std::string write_path = WRITE_PREFIX + fd_to_path[in.fd];
     pthread_mutex_lock(&data_mutex);
-    data_queue.push(write_path);
+    // data_queue.push(write_path);
     pthread_cond_signal(&data_cond);
     pthread_mutex_unlock(&data_mutex);
   }
@@ -734,9 +753,7 @@ hvac_seek_rpc_register(void)
 /* Create context even for client */
 void hvac_comm_create_handle(hg_addr_t addr, hg_id_t id, hg_handle_t *handle)
 {
-  L4C_INFO("abc");
   hg_return_t ret = HG_Create(hg_context, addr, id, handle);
-  L4C_INFO("def");
   assert(ret == HG_SUCCESS);
 }
 
