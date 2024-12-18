@@ -6,7 +6,7 @@
 
 #include "hvac_comm.h"
 #include "hvac_data_mover_internal.h"
-#include "checkpoint_manager.h"
+// #include "checkpoint_manager.h"
 
 extern "C"
 {
@@ -389,7 +389,7 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
   hvac_close_in_t in;
   hg_handle_t handle;
   int ret;
-  checkpoint_manager.finalize_file_write(fd_map[fd], fd);
+  // checkpoint_manager.finalize_file_write(fd_map[fd], fd);
   /* Get address */
   L4C_INFO("Close:");
   svr_addr = hvac_client_comm_lookup_addr(svr_hash);

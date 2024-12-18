@@ -344,7 +344,8 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   int access_fd = hvac_rpc_state_p->in.accessfd;
   ssize_t writebytes = -1;
 
-  writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
+  // TODO: checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
+  // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
   L4C_INFO("%s |  buffer: %s", fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->buffer);
 
   free(hvac_rpc_state_p->buffer);

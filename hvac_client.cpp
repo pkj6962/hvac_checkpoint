@@ -11,7 +11,7 @@
 #include "hvac_logging.h"
 #include "hvac_comm.h"
 #include "hvac_hashing.h"
-#include "checkpoint_manager.h"
+
 
 #define VIRTUAL_NODE_CNT 100
 
@@ -327,8 +327,24 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     std::string filepath = fd_map[fd];
 
     // Write to checkpoint manager
-    checkpoint_manager.write_checkpoint(filepath, buf, count, fd);
-    bytes_written = count;
+    // checkpoint_manager.write_checkpoint(filepath, buf, count, fd);
+
+    hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
+    hvac_rpc_state_p->bytes_written = &bytes_written;
+    hvac_rpc_state_p->done = &done;
+    hvac_rpc_state_p->cond = &cond;
+    hvac_rpc_state_p->mutex = &mutex;
+
+    // Generate the write RPC request.
+    int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
+
+    // Wait for the server to process the write request.
+    bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
+    if (bytes_written == -1)
+    {
+      fd_map.erase(fd);
+    }
   }
   else
   {
