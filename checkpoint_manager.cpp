@@ -125,3 +125,20 @@ void CheckpointManager::finalize_file_write(const std::string &filename, int loc
     send_chunk_to_remote(filename, chunk->buffer.get(), file_data_in_chunk, local_fd);
   }
 }
+
+void CheckpointManager::read_file_metadata(const std::string &filename)
+{
+  /*
+  filename으로 file_metadata에서 FileMetadta 취득... 
+  그로부터 size 출력 
+  디버깅 목적: file_metatdata에 filename 키로서 반드시 존재할 것으로 가정
+  */
+  try{
+    auto &meta = file_metadata[filename]; 
+    L4C_INFO("%s: size: %lld", meta.size); 
+  }
+  catch
+  {
+    L4C_INFO("%s not exists in Checkpoint Manager", filename); 
+  }
+}

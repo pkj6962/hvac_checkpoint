@@ -89,6 +89,9 @@ public:
    * @param local_fd The local file descriptor associated with the file.
    */
   void finalize_file_write(const std::string &filename, int local_fd);
+
+  // JH add
+  void read_file_metadata(const std::string &filename); 
 };
 extern CheckpointManager checkpoint_manager;
 #endif
