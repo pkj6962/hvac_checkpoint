@@ -133,13 +133,25 @@ bool hvac_track_file(const char *path, int flags, int fd)
           fd_map[fd] = std::filesystem::canonical(path);
           tracked = true;
         }
+        else if (ppath == std::filesystem::current_path())
+        {
+          L4C_INFO("Tracking used CWD file %s", path);
+          fd_map[fd] = std::filesystem::canonical(path);
+          tracked = true;
+        }
       }
-      else if (ppath == std::filesystem::current_path())
+      if (hvac_checkpoint_dir != NULL)
       {
-        L4C_INFO("Tracking used CWD file %s", path);
-        fd_map[fd] = std::filesystem::canonical(path);
-        tracked = true;
-      }
+        // 체크포인트 복구: 읽기 모드이고 파일 경로가 체크포인트 디렉토리 내부인 경우
+        std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
+        if (ppath.find(test) != std::string::npos)
+        {
+          L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
+          fd_map[fd] = std::filesystem::canonical(path);
+          tracked = true;
+        }
+      } 
+
       // TODO: For the checkpoint read for failure recovery: 
       // TODO: If it is checkpoint read and it is elastric recovery
       // TODO: Then we should query HVAC metadata server for the checkpoint Server 
@@ -218,7 +230,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
     L4C_INFO("Remote open - Host %d", host);
     hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
     hvac_client_block(host, &done, &cond, &mutex);
-
   }
 
   return tracked;

@@ -43,9 +43,14 @@ class CheckpointManager
 private:
   std::unordered_map<std::string, FileMetadata> file_metadata;      ///< Tracks metadata of files.
   std::unordered_map<std::string, size_t> current_file_chunk_index; ///< Current chunk index for each file.
+  std::unordered_map<int32_t, string> fd_to_path;
+  std::urordered_map<int32_t, int64_t> fd_to_offset;
+
   std::vector<std::unique_ptr<CheckpointChunk>> chunks;             ///< Collection of all chunks.
   std::mutex mtx;                                                   ///< Mutex for thread-safety.
   size_t global_chunk_index = 0;                                    ///< Global index for current chunk.
+
+  int32_t global_fd = -2;                                           ///< Global file descriptor for current file open
 
   /**
    * @brief Retrieves the current chunk or allocates a new one if the index exceeds existing chunks.
@@ -92,6 +97,15 @@ public:
 
   // JH add
   void read_file_metadata(const std::string &filename); 
+
+
+  // DRAM 체크포인트 파일 오프너
+  void open_checkpoint(const std::string &filename, int flag); 
+
+  void read_checkpoint(int fd, const void *buf, size_t count); 
+  
+  void close_checkpoint(int fd); 
+
 };
 extern CheckpointManager checkpoint_manager;
 #endif

@@ -1,5 +1,14 @@
 #include "checkpoint_manager.h"
 #include "hvac_comm.h"
+extern "C"
+{
+#include "hvac_logging.h"
+#include <fcntl.h>
+#include <cassert>
+#include <unistd.h>
+}
+
+
 
 int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
 CheckpointChunk::CheckpointChunk()
@@ -133,12 +142,102 @@ void CheckpointManager::read_file_metadata(const std::string &filename)
   그로부터 size 출력 
   디버깅 목적: file_metatdata에 filename 키로서 반드시 존재할 것으로 가정
   */
-  try{
+  try
+  {
     auto &meta = file_metadata[filename]; 
     L4C_INFO("%s: size: %lld", meta.size); 
-  }
-  catch
+  } catch (...)
   {
     L4C_INFO("%s not exists in Checkpoint Manager", filename); 
   }
+}
+
+
+int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
+{
+  /*
+  파일 FILENAME에 오픈 요청에대해 fd 부여 및 fd to filename 매핑 필요해 
+  */ 
+  try{
+    int fd = global_fd;
+    global_fd -= 1; 
+
+    fd_to_path[fd] = filename;
+    fd_to_offset[fd] = 0; 
+  }
+  catch (...)
+  {
+    L4C_INFO("Exception occured in open_checkpoint"); 
+  }
+
+  return fd; 
+}
+
+void CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+
+    // Map the file descriptor to the corresponding file path and offset
+    if (fd_to_path.find(fd) == fd_to_path.end())
+    {
+        L4C_ERROR("Invalid file descriptor: %d", fd);
+        return;
+    }
+
+    const std::string &filename = fd_to_path[fd];
+    size_t &offset = fd_to_offset[fd];
+
+    if (file_metadata.find(filename) == file_metadata.end())
+    {
+        L4C_ERROR("File metadata not found for: %s", filename.c_str());
+        return;
+    }
+
+    auto &meta = file_metadata[filename];
+    size_t remaining = count;
+    size_t readbytes = 0; 
+    char *output_buf = static_cast<char *>(buf);
+
+    while (remaining > 0 && offset < meta.size)
+    {
+        // Determine the chunk index and position within the chunk
+        size_t chunk_index = offset / CHUNK_SIZE;
+        size_t chunk_offset = offset % CHUNK_SIZE;
+
+        if (chunk_index >= meta.chunk_indexes.size())
+        {
+            L4C_ERROR("Invalid chunk index for offset: %zu", offset);
+            return;
+        }
+
+        CheckpointChunk *chunk = get_current_chunk(meta.chunk_indexes[chunk_index]);
+
+        // Calculate how much data to read from this chunk
+        size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
+        std::memcpy(output_buf, chunk->buffer.get() + chunk_offset, to_read);
+
+        // Update pointers and counters
+        output_buf += to_read;
+        remaining -= to_read;
+        offset += to_read;
+        readbytes += to_read; 
+    }
+
+    if (remaining > 0)
+    {
+        L4C_WARN("Requested more data than available in checkpoint");
+    }
+
+    return readbytes; 
+}
+
+void CheckpointManager::close_checkpoint(int fd)
+{
+  if (fd_tp_path.find(fd) == fd_to_path.end())
+  {
+    L4C_ERROR("Invalid file descriptor"); 
+  }
+  fd_to_path[fd].erase();
+  fd_to_offset[fd].erase(); 
+  return 0; 
 }

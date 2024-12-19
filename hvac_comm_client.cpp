@@ -437,6 +437,8 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
   // sy: add - logging code
   in.client_rank = client_rank;
   in.localfd = fd;
+  // 체크포인트 읽기 또는 쓰기인지 구분 필요해 
+  in.flag = fcntl(fd, F_GETFL);   
 
   strncpy(hvac_open_state_p->filepath, path.c_str(), sizeof(hvac_open_state_p->filepath) - 1);
   hvac_open_state_p->filepath[sizeof(hvac_open_state_p->filepath) - 1] = '\0'; // Ensure null termination

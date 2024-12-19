@@ -402,64 +402,31 @@ hvac_rpc_handler(hg_handle_t handle)
 
   if (hvac_rpc_state_p->in.offset == -1)
   {
-    readbytes = read(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-    if (readbytes == -1)
+    if (hvac_rpc_state_p->in.accessfd >= -1)
     {
-      L4C_INFO("errno: %d", errno);
+      readbytes = read(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
+      if (readbytes == -1)
+      {
+        L4C_INFO("errno: %d", errno);
+      }
     }
-
-    // char filename[256];
-    // string fdpath = "/proc/self/fd/" + to_string(hvac_rpc_state_p->in.accessfd);
-    // readlink(fdpath.c_str(), filename, 255);
+    //체크포인트 읽기 요청 위한 별도의 핸들링 
+    else if (hvac_rpc_state_p->in.accessfd <= -2)
+    {
+      readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buf, hvac_rpc_state_p->size); 
+      if (readbytes == -1)
+      {
+        L4C_INFO("Checkpoint file read error"); 
+      }
+    }
     L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.accessfd);
-    // L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank,readbytes, filename, hvac_rpc_state_p->in.accessfd);
-
-    /*
-        if (readbytes < 0) {
-                readbytes = read(hvac_rpc_state_p->in.localfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-                L4C_DEBUG("Server Rank %d : Retry Read %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.offset);
-        }
-    */
   }
   else
   {
-
-    // gettimeofday(&log_info.clocktime, NULL);
-    // strncpy(log_info.expn, "SSNVMeRequest", sizeof(log_info.expn) - 1);
-    // log_info.expn[sizeof(log_info.expn) - 1] = '\0';
     readbytes = pread(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
-    // gettimeofday(&tmp_time, NULL);
-
     L4C_INFO("Server Rank %d : PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.offset);
-    /*
-         char *hex_buf = buffer_to_hex(hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-                if (hex_buf) {
-                    L4C_INFO("Buffer content after remote read: %s", hex_buf);
-                    free(hex_buf);
-                }
-    */
     if (readbytes < 0)
     { // sy: add
-      strncpy(log_info.expn, "Fail", sizeof(log_info.expn) - 1);
-      log_info.expn[sizeof(log_info.expn) - 1] = '\0';
-      // logging_info(&log_info, "server");
-      /*
-              const char* original_path = fd_to_path[hvac_rpc_state_p->in.accessfd].c_str();
-              int original_fd = open(original_path, O_RDONLY);
-              if (original_fd != -1) {
-                  readbytes = pread(original_fd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
-                  L4C_DEBUG("Server Rank %d : Retry PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.offset);
-                  close(original_fd);
-              }
-          else {
-            readbytes = pread(hvac_rpc_state_p->in.localfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
-                  if(readbytes<0){
-              L4C_DEBUG("Server Rank %d : Failed to open original file %s", server_rank, original_path);
-            }
-              }
-      */
-      //		if(readbytes<0){
-      //			L4C_DEBUG("Server Rank %d : Failed to open original file %s", server_rank, original_path);
       HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
       free(hvac_rpc_state_p->buffer);
       L4C_DEBUG("server read failed -1\n");
@@ -469,6 +436,7 @@ hvac_rpc_handler(hg_handle_t handle)
       return HG_SUCCESS;
       //		}
     }
+    // TODO: 필요시 checkpoint read를 위한 pread 로직 구축요 
   }
 
   // Reduce size of transfer to what was actually read
@@ -565,19 +533,36 @@ hvac_open_rpc_handler(hg_handle_t handle)
   }
   L4C_INFO("Open B");
 
-  // Write IO Mode
+
   if (!hvac_checkpoint_dir.empty())
   {
     string test = filesystem::canonical(hvac_checkpoint_dir.c_str());
     
     if (ppath.find(test) != string::npos)
     {
-      redir_path = hvac_get_bbpath(redir_path);
-      pthread_mutex_lock(&path_map_mutex);
-      path_cache_map[in.path] = redir_path;
-      pthread_mutex_unlock(&path_map_mutex);
-      out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
-      L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
+    
+      // 체크포인트 쓰기 모드
+      if (in.flag & O_ACCMODE == O_WRONLY)
+      {  
+        redir_path = hvac_get_bbpath(redir_path);
+        pthread_mutex_lock(&path_map_mutex);
+        path_cache_map[in.path] = redir_path;
+        pthread_mutex_unlock(&path_map_mutex);
+        out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
+        L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
+      }
+    
+      // 체크포인트 복구 모드
+      /*
+      flag가 읽기 모드인 경우 DRAM에서 체크포인트 읽게 돼
+      DRAM 파일 관리용 자체적인 fd 관리 및 부여 필요해... 체크포인트 매니저 내부에서 오픈할 수 있을 듯 
+      */
+      else if (in.flag & O_ACCMODE == O_RDONLY)
+      {
+        out.ret_status = open_checkpoint(redir_path, flag); 
+        L4C_INFO("%s is opened in RDONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
+      }
+   
     }  
   }
   fd_to_path[out.ret_status] = in.path;
@@ -611,11 +596,6 @@ hvac_close_rpc_handler(hg_handle_t handle)
     L4C_INFO("Other mode");
   }
 
-  L4C_INFO("Closing File %d\n", in.fd);
-  ret = close(in.fd);
-  //    assert(ret == 0);
-  //	out.done = ret;
-
   /*
   TODO: 파일 DRAM에 잘 써졌는지 디버깅 필요... 
   총 파일 크기가 PFS 상 파일 크기와 맞는지 확인 필요
@@ -623,17 +603,19 @@ hvac_close_rpc_handler(hg_handle_t handle)
   */  
   if (flags & O_ACCMODE == O_WRONLY)
   {
-    string filename =  fd_to_path[in.fd]; 
-    auto &meta = checkpoint_manager.file_metadata[filename];
-    L4C_INFO("%s: %lld in DRAM", filename, meta.size); 
+    string filename = fd_to_path[in.fd]; 
+    checkpoint_manager.read_file_metadata(filename); 
   }
 
-
-
-
-
-
-
+  L4C_INFO("Closing File %d\n", in.fd);
+  if (in.fd >= 0)
+    ret = close(in.fd);
+  else if (in.fd <= -2)
+    ret = checkpoint_manager.close_checkpoint(in.fd); 
+  //
+  
+      assert(ret == 0);
+  //	out.done = ret;
   // sy: add - logging code
   hgi = HG_Get_info(handle);
   if (!hgi)
