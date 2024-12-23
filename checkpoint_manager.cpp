@@ -158,8 +158,9 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
   /*
   파일 FILENAME에 오픈 요청에대 해 fd 부여 및 fd to filename 매핑 필요
   */ 
+ int fd; 
   try{
-    int fd = global_fd;
+    fd = global_fd;
     global_fd -= 1; 
 
     fd_to_path[fd] = filename;
@@ -173,14 +174,14 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
   return fd; 
 }
 
-size_t CheckpointManager::read_checkpoint(int fd, const void *buf, size_t count)
+size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
 {
     std::lock_guard<std::mutex> lock(mtx);
 
     // Map the file descriptor to the corresponding file path and offset
     if (fd_to_path.find(fd) == fd_to_path.end())
     {
-        L4C_ERROR("Invalid file descriptor: %d", fd);
+        L4C_INFO("Invalid file descriptor: %d", fd);
         return;
     }
 
@@ -189,8 +190,9 @@ size_t CheckpointManager::read_checkpoint(int fd, const void *buf, size_t count)
 
     if (file_metadata.find(filename) == file_metadata.end())
     {
-        L4C_ERROR("File metadata not found for: %s", filename.c_str());
-        return;
+        L4C_INFO("File metadata not found for: %s", filename.c_str());
+        exit(-1); 
+        // return;
     }
 
     auto &meta = file_metadata[filename];
@@ -206,8 +208,9 @@ size_t CheckpointManager::read_checkpoint(int fd, const void *buf, size_t count)
 
         if (chunk_index >= meta.chunk_indexes.size())
         {
-            L4C_ERROR("Invalid chunk index for offset: %zu", offset);
-            return;
+            L4C_INFO("Invalid chunk index for offset: %zu", offset);
+            exit(-1); 
+            // return;
         }
 
         CheckpointChunk *chunk = get_current_chunk(meta.chunk_indexes[chunk_index]);
@@ -225,7 +228,7 @@ size_t CheckpointManager::read_checkpoint(int fd, const void *buf, size_t count)
 
     if (remaining > 0)
     {
-        L4C_WARN("Requested more data than available in checkpoint");
+        L4C_INFO("Requested more data than available in checkpoint");
     }
 
     return readbytes; 
@@ -235,7 +238,7 @@ int CheckpointManager::close_checkpoint(int fd)
 {
   if (fd_to_path.find(fd) == fd_to_path.end())
   {
-    L4C_ERROR("Invalid file descriptor"); 
+    L4C_INFO("Invalid file descriptor"); 
   }
   fd_to_path.erase(fd);
   fd_to_offset.erase(fd); 

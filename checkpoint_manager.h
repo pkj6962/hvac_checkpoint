@@ -102,7 +102,7 @@ public:
   // DRAM 체크포인트 파일 오프너
   int open_checkpoint(const std::string &filename, int flag); 
 
-  size_t read_checkpoint(int fd, const void *buf, size_t count); 
+  size_t read_checkpoint(int fd, void *buf, size_t count); 
   
   int close_checkpoint(int fd); 
 
