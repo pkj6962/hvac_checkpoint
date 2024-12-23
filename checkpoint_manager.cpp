@@ -173,7 +173,7 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
   return fd; 
 }
 
-size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
+size_t CheckpointManager::read_checkpoint(int fd, const void *buf, size_t count)
 {
     std::lock_guard<std::mutex> lock(mtx);
 
@@ -233,11 +233,11 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
 
 int CheckpointManager::close_checkpoint(int fd)
 {
-  if (fd_tp_path.find(fd) == fd_to_path.end())
+  if (fd_to_path.find(fd) == fd_to_path.end())
   {
     L4C_ERROR("Invalid file descriptor"); 
   }
-  fd_to_path[fd].erase();
-  fd_to_offset[fd].erase(); 
+  fd_to_path.erase(fd);
+  fd_to_offset.erase(fd); 
   return 0; 
 }

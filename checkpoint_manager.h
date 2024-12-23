@@ -43,7 +43,7 @@ class CheckpointManager
 private:
   std::unordered_map<std::string, FileMetadata> file_metadata;      ///< Tracks metadata of files.
   std::unordered_map<std::string, size_t> current_file_chunk_index; ///< Current chunk index for each file.
-  std::unordered_map<int32_t, string> fd_to_path;
+  std::unordered_map<int32_t, std::string> fd_to_path;
   std::unordered_map<int32_t, int64_t> fd_to_offset;
 
   std::vector<std::unique_ptr<CheckpointChunk>> chunks;             ///< Collection of all chunks.
