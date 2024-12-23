@@ -108,32 +108,32 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
   }
 }
 
-void CheckpointManager::finalize_file_write(const std::string &filename, int local_fd)
-{
-  std::lock_guard<std::mutex> lock(mtx);
+// void CheckpointManager::finalize_file_write(const std::string &filename, int local_fd)
+// {
+//   std::lock_guard<std::mutex> lock(mtx);
 
-  auto it = file_metadata.find(filename);
-  if (it == file_metadata.end())
-  {
-    return;
-  }
+//   auto it = file_metadata.find(filename);
+//   if (it == file_metadata.end())
+//   {
+//     return;
+//   }
 
-  const auto &meta = it->second;
-  if (meta.chunk_indexes.empty())
-  {
-    return;
-  }
+//   const auto &meta = it->second;
+//   if (meta.chunk_indexes.empty())
+//   {
+//     return;
+//   }
 
-  size_t &current_chunk_index = current_file_chunk_index[filename];
-  CheckpointChunk *chunk = get_current_chunk(current_chunk_index);
+//   size_t &current_chunk_index = current_file_chunk_index[filename];
+//   CheckpointChunk *chunk = get_current_chunk(current_chunk_index);
 
-  // Send any remaining data in the last chunk
-  size_t file_data_in_chunk = meta.size % CHUNK_SIZE;
-  if (file_data_in_chunk > 0)
-  {
-    send_chunk_to_remote(filename, chunk->buffer.get(), file_data_in_chunk, local_fd);
-  }
-}
+//   // Send any remaining data in the last chunk
+//   size_t file_data_in_chunk = meta.size % CHUNK_SIZE;
+//   if (file_data_in_chunk > 0)
+//   {
+//     send_chunk_to_remote(filename, chunk->buffer.get(), file_data_in_chunk, local_fd);
+//   }
+// }
 
 void CheckpointManager::read_file_metadata(const std::string &filename)
 {
