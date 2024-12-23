@@ -182,11 +182,12 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
     if (fd_to_path.find(fd) == fd_to_path.end())
     {
         L4C_INFO("Invalid file descriptor: %d", fd);
-        return;
+        exit(-1); 
+        // return;
     }
 
     const std::string &filename = fd_to_path[fd];
-    size_t &offset = fd_to_offset[fd];
+    size_t offset = fd_to_offset[fd];
 
     if (file_metadata.find(filename) == file_metadata.end())
     {
