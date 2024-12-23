@@ -15,6 +15,11 @@
 
 #define VIRTUAL_NODE_CNT 100
 
+// Dummy Definition for avoiding undefined symbol error: It will be never referenced. 
+CheckpointManager checkpoint_manager;
+
+
+
 __thread bool tl_disable_redirect = false;
 bool g_disable_redirect = true;
 bool g_hvac_initialized = false;
