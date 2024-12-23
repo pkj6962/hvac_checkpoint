@@ -191,7 +191,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
       hvac_client_comm_register_rpc();
       g_mercury_init = true;
     }
-
     hvac_open_state_t *hvac_open_state_p = (hvac_open_state_t *)malloc(sizeof(hvac_open_state_t));
     hvac_open_state_p->done = &done;
     hvac_open_state_p->cond = &cond;
@@ -205,7 +204,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
     {
       // TODO: 체크포인트 쓰기 시, Local DRAM으로 Redirect
       // host = current_host / CLIENT_PER_NODE;
-      host = (host + 1) % g_hvac_server_count;
+      // host = (host + 1) % g_hvac_server_count;
     }
 
     L4C_INFO("Remote open - Host %d", host);

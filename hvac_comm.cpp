@@ -351,7 +351,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
   // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-  L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
+  // L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
 
   free(hvac_rpc_state_p->buffer);
   free(hvac_rpc_state_p);
@@ -497,13 +497,13 @@ hvac_open_rpc_handler(hg_handle_t handle)
   const struct hg_info *hgi;
   int nvme_flag = 0;
 
-  // L4C_INFO("aaa");
+  
   int ret = HG_Get_input(handle, &in);
-  // L4C_INFO("bbb");
+  
   assert(ret == 0);
   string redir_path = in.path;
 
-  L4C_INFO("Open A");
+  
 
   // sy: add - for logging
   hgi = HG_Get_info(handle);
@@ -533,7 +533,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
       L4C_INFO("Server Rank %d : Successful Open %s %d", server_rank, redir_path.c_str(), out.ret_status);
     }
   }
-  L4C_INFO("Open B");
+
 
 
   if (!hvac_checkpoint_dir.empty())
@@ -542,11 +542,12 @@ hvac_open_rpc_handler(hg_handle_t handle)
     
     if (ppath.find(test) != string::npos)
     {
-    
+      L4C_INFO("Tracked write path is in checkpoint_dir")
       // 체크포인트 쓰기 모드
-      if (in.flag & O_ACCMODE == O_WRONLY)
+      if ((in.flag & O_ACCMODE) == O_WRONLY)
       {  
-        redir_path = hvac_get_bbpath(redir_path);
+        // 버스트버퍼 패스에 저장하지 않아 
+        // redir_path = hvac_get_bbpath(redir_path);
         pthread_mutex_lock(&path_map_mutex);
         path_cache_map[in.path] = redir_path;
         pthread_mutex_unlock(&path_map_mutex);
@@ -559,7 +560,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
       flag가 읽기 모드인 경우 DRAM에서 체크포인트 읽게 돼
       DRAM 파일 관리용 자체적인 fd 관리 및 부여 필요해... 체크포인트 매니저 내부에서 오픈할 수 있을 듯 
       */
-      else if (in.flag & O_ACCMODE == O_RDONLY)
+      else if ((in.flag & O_ACCMODE) == O_RDONLY)
       {
         out.ret_status = checkpoint_manager.open_checkpoint(redir_path, in.flag); 
         L4C_INFO("%s is opened in RDONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
@@ -568,7 +569,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     }  
   }
   fd_to_path[out.ret_status] = in.path;
-  L4C_INFO("Open C");
+  
   HG_Respond(handle, NULL, NULL, &out);
   return (hg_return_t)ret;
 }
@@ -603,7 +604,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
   총 파일 크기가 PFS 상 파일 크기와 맞는지 확인 필요
   FilePath로써 체크포인트 청크 리스트 개수 등 파악해야   
   */  
-  if (flags & O_ACCMODE == O_WRONLY)
+  if ((flags & O_ACCMODE) == O_WRONLY)
   {
     string filename = fd_to_path[in.fd]; 
     checkpoint_manager.read_file_metadata(filename); 
@@ -616,7 +617,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
     ret = checkpoint_manager.close_checkpoint(in.fd); 
   //
   
-      assert(ret == 0);
+  assert(ret == 0);
   //	out.done = ret;
   // sy: add - logging code
   hgi = HG_Get_info(handle);
@@ -631,7 +632,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
   // Signal to the data mover to copy the file
   pthread_mutex_lock(&path_map_mutex); // sy: add
   bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
-  if (flags & O_ACCMODE == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
+  if ((flags & O_ACCMODE) == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
   {
     pthread_mutex_lock(&data_mutex);
     // TODO: File that was open in write mode should not be pushed into data_queue
