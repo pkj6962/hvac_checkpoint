@@ -8,6 +8,7 @@ extern "C"
 #include <unistd.h>
 }
 
+CheckpointManager checkpoint_manager;
 
 
 int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
