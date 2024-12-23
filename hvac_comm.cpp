@@ -25,6 +25,8 @@ static string hvac_checkpoint_dir;
 
 char server_addr_str[128];
 
+CheckpointManager checkpoint_manager;
+
 /* struct used to carry state of overall operation across callbacks */
 struct hvac_rpc_state
 {

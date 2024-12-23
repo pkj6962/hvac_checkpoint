@@ -15,8 +15,6 @@
 
 #define VIRTUAL_NODE_CNT 100
 
-// Dummy Definition for avoiding undefined symbol error: It will be never referenced. 
-CheckpointManager checkpoint_manager;
 
 
 

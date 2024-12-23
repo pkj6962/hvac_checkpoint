@@ -8,7 +8,8 @@ extern "C"
 #include <unistd.h>
 }
 
-CheckpointManager checkpoint_manager;
+// Moved its definition into hvac_comm.cpp to avoid undefined symbol error in client side. 
+// CheckpointManager checkpoint_manager;
 
 
 int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
