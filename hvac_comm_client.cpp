@@ -414,6 +414,9 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
   return;
 }
 
+
+
+
 void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_open_state_t *hvac_open_state_p)
 {
   // sy: modified logic
@@ -632,7 +635,7 @@ hg_addr_t hvac_client_comm_lookup_addr(int rank)
 void hvac_get_addr()
 {
 
-  if (my_address == HG_ADDR_NULL)
+  if (my_address == HG_ADDR_NULL) 
   {
     hg_addr_t client_addr;
     hg_size_t size = PATH_MAX;

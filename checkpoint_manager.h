@@ -44,7 +44,7 @@ private:
   std::unordered_map<std::string, FileMetadata> file_metadata;      ///< Tracks metadata of files.
   std::unordered_map<std::string, size_t> current_file_chunk_index; ///< Current chunk index for each file.
   std::unordered_map<int32_t, string> fd_to_path;
-  std::urordered_map<int32_t, int64_t> fd_to_offset;
+  std::unordered_map<int32_t, int64_t> fd_to_offset;
 
   std::vector<std::unique_ptr<CheckpointChunk>> chunks;             ///< Collection of all chunks.
   std::mutex mtx;                                                   ///< Mutex for thread-safety.
@@ -100,11 +100,11 @@ public:
 
 
   // DRAM 체크포인트 파일 오프너
-  void open_checkpoint(const std::string &filename, int flag); 
+  int open_checkpoint(const std::string &filename, int flag); 
 
-  void read_checkpoint(int fd, const void *buf, size_t count); 
+  size_t read_checkpoint(int fd, const void *buf, size_t count); 
   
-  void close_checkpoint(int fd); 
+  int close_checkpoint(int fd); 
 
 };
 extern CheckpointManager checkpoint_manager;

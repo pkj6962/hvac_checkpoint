@@ -143,6 +143,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
       if (hvac_checkpoint_dir != NULL)
       {
         // 체크포인트 복구: 읽기 모드이고 파일 경로가 체크포인트 디렉토리 내부인 경우
+        // TODO: 실패 후 "재시작"를 위한 읽기인지, 최초 학습 "시작"을 위한 읽기인지 구분 필요해
+        // 썌얘:  
         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
         if (ppath.find(test) != std::string::npos)
         {
@@ -151,24 +153,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
           tracked = true;
         }
       } 
-
-      // TODO: For the checkpoint read for failure recovery: 
-      // TODO: If it is checkpoint read and it is elastric recovery
-      // TODO: Then we should query HVAC metadata server for the checkpoint Server 
-      /*
-      if (!checkpoint_dir)
-      {
-          test <- canonical(hvac_checkpoint_dir)
-          if (parent_path_of_PATH.includes(test))
-          {
-              It sends *DRAM_FILE_PATH to hvac_metadata_server          
-              *prefix added
-          }
-      }
-      */
-
-
-
     }
     // Check if the file is for writing (new HVAC_CHECKPOINT_DIR tracking)
     else if (is_write_mode)
@@ -200,14 +184,6 @@ bool hvac_track_file(const char *path, int flags, int fd)
   {
     if (!g_mercury_init)
     {
-      // char * rank_str = getenv("PMI_RANK");
-      // if (rank_str == NULL)
-      //     L4C_INFO("Rank Before init: NULL");
-      // else {
-      //     client_rank = atoi(rank_str);
-      //     L4C_INFO("Rank Before init: %d", client_rank);
-      // }
-
       hvac_init_comm(false);
       hvac_client_comm_register_rpc();
       g_mercury_init = true;
@@ -224,6 +200,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
     //TODO: Invalidate host update when the target server is on local. 
     if (is_write_mode && host == current_host)
     {
+      // TODO: 체크포인트 쓰기 시, Local DRAM으로 Redirect
+      // host = current_host / CLIENT_PER_NODE;
       host = (host + 1) % g_hvac_server_count;
     }
 

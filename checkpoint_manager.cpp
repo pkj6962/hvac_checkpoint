@@ -156,7 +156,7 @@ void CheckpointManager::read_file_metadata(const std::string &filename)
 int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
 {
   /*
-  파일 FILENAME에 오픈 요청에대해 fd 부여 및 fd to filename 매핑 필요해 
+  파일 FILENAME에 오픈 요청에대 해 fd 부여 및 fd to filename 매핑 필요
   */ 
   try{
     int fd = global_fd;
@@ -173,7 +173,7 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
   return fd; 
 }
 
-void CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
+size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
 {
     std::lock_guard<std::mutex> lock(mtx);
 
@@ -231,7 +231,7 @@ void CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
     return readbytes; 
 }
 
-void CheckpointManager::close_checkpoint(int fd)
+int CheckpointManager::close_checkpoint(int fd)
 {
   if (fd_tp_path.find(fd) == fd_to_path.end())
   {

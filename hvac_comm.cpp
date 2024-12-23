@@ -413,7 +413,7 @@ hvac_rpc_handler(hg_handle_t handle)
     //체크포인트 읽기 요청 위한 별도의 핸들링 
     else if (hvac_rpc_state_p->in.accessfd <= -2)
     {
-      readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buf, hvac_rpc_state_p->size); 
+      readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size); 
       if (readbytes == -1)
       {
         L4C_INFO("Checkpoint file read error"); 
@@ -559,7 +559,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
       */
       else if (in.flag & O_ACCMODE == O_RDONLY)
       {
-        out.ret_status = open_checkpoint(redir_path, flag); 
+        out.ret_status = checkpoint_manager.open_checkpoint(redir_path, in.flag); 
         L4C_INFO("%s is opened in RDONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
       }
    
@@ -655,6 +655,8 @@ hvac_close_rpc_handler(hg_handle_t handle)
 
   return (hg_return_t)ret;
 }
+
+
 
 static hg_return_t
 hvac_seek_rpc_handler(hg_handle_t handle)
