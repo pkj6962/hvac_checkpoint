@@ -258,15 +258,3 @@ off_t CheckpointManager::lseek_checkpoint(int fd, off_t offset, int whence)
 
 
 }
-
-// off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
-// {
-// 	MAP_OR_FAIL(lseek);
-// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
-
-// 	if (hvac_file_tracked(fd)){
-// 		L4C_INFO("Got an LSEEK on a tracked file %d %ld\n", fd, offset);	
-// 		return hvac_remote_lseek(fd,offset,whence);
-// 	}
-// 	return __real_lseek(fd, offset, whence);
-}

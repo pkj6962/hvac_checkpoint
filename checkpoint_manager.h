@@ -106,6 +106,9 @@ public:
   
   int close_checkpoint(int fd); 
 
+  off_t lseek_checkpoint(int fd, off_t offset, int whence)
+
+
 };
 extern CheckpointManager checkpoint_manager;
 #endif
