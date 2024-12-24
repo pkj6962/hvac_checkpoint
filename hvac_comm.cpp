@@ -563,7 +563,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
       else if ((in.flag & O_ACCMODE) == O_RDONLY)
       {
         out.ret_status = checkpoint_manager.open_checkpoint(redir_path, in.flag); 
-        L4C_INFO("%s is opened in RDONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
+        L4C_INFO("%s is opened in RDONLY mode: %d", redir_path.c_str(), out.ret_status);
       }
    
     }  
@@ -590,13 +590,13 @@ hvac_close_rpc_handler(hg_handle_t handle)
   switch (flags & O_ACCMODE)
   {
   case O_RDONLY:
-    L4C_INFO("File is opened in readonly mode");
+    L4C_INFO("Close: File was opened in readonly mode");
     break;
   case O_WRONLY:
-    L4C_INFO("File is opened in writeonly mode");
+    L4C_INFO("Close: File was opened in writeonly mode");
     break;
   default:
-    L4C_INFO("Other mode");
+    L4C_INFO("Close: File ws opened in  Other mode than read or wriet");
   }
 
   /*
@@ -607,6 +607,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
   if ((flags & O_ACCMODE) == O_WRONLY)
   {
     string filename = fd_to_path[in.fd]; 
+    L4C_INFO("close: %s %d", filename.c_str(), in.fd); 
     checkpoint_manager.read_file_metadata(filename); 
   }
 
@@ -670,6 +671,8 @@ hvac_seek_rpc_handler(hg_handle_t handle)
   assert(ret == 0);
 
   out.ret = lseek64(in.fd, in.offset, in.whence);
+
+  // checkpoint_manager.lseek_checkpoint(in.fd, in.offset, in.whence); 
 
   HG_Respond(handle, NULL, NULL, &out);
 

@@ -147,7 +147,7 @@ int WRAP_DECL(close)(int fd)
 	const char *path = hvac_get_path(fd);
 	if (path)
 	{
-		//L4C_INFO("Close to file %s",path);
+		L4C_INFO("Close to file %s",path);
 		hvac_remove_fd(fd);
 	}
 	//L4C_INFO("Close - path: %s", path); 
@@ -188,8 +188,6 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 }
 
 */
-
-
 
 
 

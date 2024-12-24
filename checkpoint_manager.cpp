@@ -73,6 +73,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
   // Initialize file metadata if this is the first write
   if (meta.chunk_indexes.empty())
   {
+    L4C_INFO("Checkpoint manager: New file metadata is created for %s", filename.c_str()); 
     current_chunk_index = global_chunk_index;
     meta.chunk_indexes.push_back(global_chunk_index);
   }
@@ -147,7 +148,7 @@ void CheckpointManager::read_file_metadata(const std::string &filename)
   try
   {
     auto &meta = file_metadata[filename]; 
-    L4C_INFO("%s: size: %lld", meta.size); 
+    L4C_INFO("%s: size: %lld", filename.c_str(), meta.size); 
   } catch (...)
   {
     L4C_INFO("%s not exists in Checkpoint Manager", filename); 
@@ -246,4 +247,26 @@ int CheckpointManager::close_checkpoint(int fd)
   fd_to_path.erase(fd);
   fd_to_offset.erase(fd); 
   return 0; 
+}
+
+off_t CheckpointManager::lseek_checkpoint(int fd, off_t offset, int whence)
+{
+  /*
+  TODO: 
+  기존 lseek 로직 따라 fd_to_offset[fd] 값 변경
+  */
+
+
+}
+
+// off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
+// {
+// 	MAP_OR_FAIL(lseek);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
+
+// 	if (hvac_file_tracked(fd)){
+// 		L4C_INFO("Got an LSEEK on a tracked file %d %ld\n", fd, offset);	
+// 		return hvac_remote_lseek(fd,offset,whence);
+// 	}
+// 	return __real_lseek(fd, offset, whence);
 }

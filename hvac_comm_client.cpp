@@ -442,6 +442,9 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
   in.localfd = fd;
   // 체크포인트 읽기 또는 쓰기인지 구분 필요해 
   in.flag = fcntl(fd, F_GETFL);   
+  
+
+
 
   strncpy(hvac_open_state_p->filepath, path.c_str(), sizeof(hvac_open_state_p->filepath) - 1);
   hvac_open_state_p->filepath[sizeof(hvac_open_state_p->filepath) - 1] = '\0'; // Ensure null termination
@@ -450,7 +453,6 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
   char server_addr[128];
   size_t server_addr_str_size = sizeof(server_addr);
   ret = HG_Addr_to_string(hvac_comm_get_class(), server_addr, &server_addr_str_size, svr_addr);
-
   ret = HG_Forward(handle, hvac_open_cb, hvac_open_state_p, &in);
   assert(ret == 0);
 
@@ -595,7 +597,6 @@ hg_addr_t hvac_client_comm_lookup_addr(int rank)
   if (address_cache.find(rank) != address_cache.end())
   {
     hg_addr_t target_server;
-    L4C_INFO("hi!aa");
     HG_Addr_lookup2(hvac_comm_get_class(), address_cache[rank].c_str(), &target_server);
     return target_server;
   }
