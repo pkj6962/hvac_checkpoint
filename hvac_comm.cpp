@@ -513,6 +513,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     return (hg_return_t)ret;
   }
   
+  
   string ppath = filesystem::canonical(redir_path.c_str()).parent_path();
 
   // Read IO Mode

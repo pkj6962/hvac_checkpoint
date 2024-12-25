@@ -150,13 +150,13 @@ bool hvac_track_file(const char *path, int flags, int fd)
         if (ppath.find(test) != std::string::npos)
         {
           L4C_INFO("Tracking used HVAC_DATA_DIR file %s", path);
-          fd_map[fd] = std::filesystem::canonical(path);
+          fd_map[fd] = std::filesystem::canonical(path).string();
           tracked = true;
         }
         else if (ppath == std::filesystem::current_path())
         {
           L4C_INFO("Tracking used CWD file %s", path);
-          fd_map[fd] = std::filesystem::canonical(path);
+          fd_map[fd] = std::filesystem::canonical(path).string();
           tracked = true;
         }
       }
@@ -168,8 +168,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
         if (ppath.find(test) != std::string::npos)
         {
-          L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
-          fd_map[fd] = std::filesystem::canonical(path);
+          L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR(read) file %s", path);
+          fd_map[fd] = std::filesystem::canonical(path).string();
           tracked = true;
         }
       } 
@@ -182,8 +182,9 @@ bool hvac_track_file(const char *path, int flags, int fd)
         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
         if (ppath.find(test) != std::string::npos)
         {
-          L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR file %s", path);
-          fd_map[fd] = std::filesystem::canonical(path);
+          L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR(write) file %s", path);
+          fd_map[fd] = std::filesystem::canonical(path).string();
+          
           tracked = true;
         }
       }
@@ -227,7 +228,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
       // host = extract_rank(fd_map[fd]) / CLIENT_PER_NODE
     }      
   
-    L4C_INFO("Remote open - Host %d", host);
+    L4C_INFO("Remote open - Host %d %s", host, path);
     hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
     hvac_client_block(host, &done, &cond, &mutex);
   }

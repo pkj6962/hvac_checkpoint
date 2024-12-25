@@ -612,7 +612,6 @@ hg_addr_t hvac_client_comm_lookup_addr(int rank)
   sprintf(filename, "./.ports.cfg.%s", jobid);
   na_config = fopen(filename, "r+");
 
-  L4C_INFO("hi!bb- target rank: %d", rank);
   while (fscanf(na_config, "%d %s\n", &svr_rank, svr_str) == 2)
   {
     if (svr_rank == rank)
