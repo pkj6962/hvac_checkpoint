@@ -130,7 +130,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
   bool tracked = false;
   bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
-  bool is_read_mode = (flags && O_ACCMODE) == O_RDONLY || (flags && O_ACCMODE) == O_RDWR;
+  bool is_read_mode = (flags & O_ACCMODE) == O_RDONLY || (flags & O_ACCMODE) == O_RDWR;
   
   try
   {
@@ -226,11 +226,11 @@ bool hvac_track_file(const char *path, int flags, int fd)
       // TODO: 체크포인트 읽기 시, 파일경로에서 추출한 rank와 동일한 노드의 서버로 리다이렉트
       // host = extract_rank(fd_map[fd]) / CLIENT_PER_NODE
     }      
-  }
+  
     L4C_INFO("Remote open - Host %d", host);
     hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
     hvac_client_block(host, &done, &cond, &mutex);
-
+  }
   return tracked;
 }
 
@@ -480,30 +480,40 @@ void hvac_remote_close(int fd)
 
 bool hvac_file_tracked(int fd)
 {
-  if (fd_map.empty())
-  { // sy: add
-    return false;
+  try{
+    if (fd_map.empty())
+    { // sy: add
+      return false;
+    }
+    return (fd_map.find(fd) != fd_map.end());
+  }catch(...)
+  {
+		L4C_INFO("hvac_file_tracked(): this should not be reached");
   }
-  return (fd_map.find(fd) != fd_map.end());
 }
 
 const char *hvac_get_path(int fd)
 {
+  try{
+    string path = "/proc/self/fd/" + to_string(fd);
+    char filepath[256];
+    ssize_t len = readlink(path.c_str(), filepath, sizeof(filepath) - 1);
+    filepath[len] = '\0';
 
-  string path = "/proc/self/fd/" + to_string(fd);
-  char filepath[256];
-  ssize_t len = readlink(path.c_str(), filepath, sizeof(filepath) - 1);
-  filepath[len] = '\0';
+    // L4C_INFO("fd on HVAC_GET_PATH: %d %s\n", fd, filepath);
+    if (fd_map.empty())
+    { // sy: add
+      return NULL;
+    }
 
-  // L4C_INFO("fd on HVAC_GET_PATH: %d %s\n", fd, filepath);
-  if (fd_map.empty())
-  { // sy: add
-    return NULL;
+    if (fd_map.find(fd) != fd_map.end())
+    {
+      return fd_map[fd].c_str();
+    }
   }
-
-  if (fd_map.find(fd) != fd_map.end())
+  catch (...)
   {
-    return fd_map[fd].c_str();
+		L4C_INFO("hvac_get_path(): this should not be reached");
   }
   return NULL;
 }

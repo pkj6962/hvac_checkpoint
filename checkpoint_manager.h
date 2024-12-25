@@ -106,7 +106,7 @@ public:
   
   int close_checkpoint(int fd); 
 
-  off_t lseek_checkpoint(int fd, off_t offset, int whence)
+  off_t lseek_checkpoint(int fd, off_t offset, int whence); 
 
 
 };

@@ -216,7 +216,7 @@ ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
 
 	if (path)
 	{                
-//		L4C_INFO("pread to tracked file %s",path);
+		L4C_INFO("pread to tracked file %s",path);
 		
 //		memset(buf, 0, count);
 		ret = hvac_remote_pread(fd, buf, count, offset);
@@ -263,6 +263,7 @@ ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
 	const char *path = hvac_get_path(fd);
 	if (path)
 	{
+		
 		L4C_INFO("Read64 to file %s of size %ld",path,count);
 	}
 	L4C_INFO("read64 - path: %s", path); 
@@ -297,6 +298,7 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
     const char *path = hvac_get_path(fd);
     if (path) {
         // Handle caching logic here
+		L4C_INFO("write: this should not be readed");
         ssize_t cached_write = hvac_cache_write(fd, buf, count);
         if (cached_write > 0) {
 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
