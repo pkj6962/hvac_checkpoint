@@ -48,307 +48,305 @@ extern __thread bool tl_disable_redirect;
 
 
 /* fopen wrapper */
-// FILE *WRAP_DECL(fopen)(const char *path, const char *mode)
-// {
+FILE *WRAP_DECL(fopen)(const char *path, const char *mode)
+{
 
-// 	MAP_OR_FAIL(fopen);
-// 	if (g_disable_redirect || tl_disable_redirect) return __real_fopen( path, mode);
+	MAP_OR_FAIL(fopen);
+	if (g_disable_redirect || tl_disable_redirect) return __real_fopen( path, mode);
 
-// 	FILE *ptr = __real_fopen(path,mode);
+	FILE *ptr = __real_fopen(path,mode);
 
-// 	if (ptr != NULL)
-// 	{
-// 		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
-// 		{
-// 			L4C_INFO("FOpen: Tracking File %s",path);
-// 		}
-// 	}	
+	if (ptr != NULL)
+	{
+		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
+		{
+			L4C_INFO("FOpen: Tracking File %s",path);
+		}
+	}	
 	
-// 	return ptr;
-// }
+	return ptr;
+}
 
 
-// /* fopen wrapper */
-// FILE *WRAP_DECL(fopen64)(const char *path, const char *mode)
-// {
+/* fopen wrapper */
+FILE *WRAP_DECL(fopen64)(const char *path, const char *mode)
+{
 
-// 	MAP_OR_FAIL(fopen64);
-// 	if (g_disable_redirect || tl_disable_redirect) return __real_fopen64( path, mode);
+	MAP_OR_FAIL(fopen64);
+	if (g_disable_redirect || tl_disable_redirect) return __real_fopen64( path, mode);
 
-// 	FILE *ptr = __real_fopen64(path,mode);
+	FILE *ptr = __real_fopen64(path,mode);
 
-// 	if (ptr != NULL)
-// 	{
-// 		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
-// 		{
-// 			L4C_INFO("FOpen64: Tracking File %s",path);
-// 		}
-// 	}	
+	if (ptr != NULL)
+	{
+		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
+		{
+			L4C_INFO("FOpen64: Tracking File %s",path);
+		}
+	}	
 	
-// 	return ptr;
-// }
+	return ptr;
+}
 
-// int WRAP_DECL(open)(const char *pathname, int flags, ...)
-// {
-// 	int ret = 0;
-// 	va_list ap;
-// 	int mode = 0;
-// 	int use_mode = 0; //sy: add // you can revert this change
+int WRAP_DECL(open)(const char *pathname, int flags, ...)
+{
+	int ret = 0;
+	va_list ap;
+	int mode = 0;
+	int use_mode = 0; //sy: add // you can revert this change
 
-// 	if (flags & O_CREAT)
-// 	{
-// 		va_start(ap, flags);
-// 		mode = va_arg(ap, int);
-// 		va_end(ap);
-// 		use_mode = 1; //sy: add
-// 	}
+	if (flags & O_CREAT)
+	{
+		va_start(ap, flags);
+		mode = va_arg(ap, int);
+		va_end(ap);
+		use_mode = 1; //sy: add
+	}
 
-// 	MAP_OR_FAIL(open);
-// 	if (g_disable_redirect || tl_disable_redirect){
-// 		if (use_mode) { //sy: add
-//             return __real_open(pathname, flags, mode);
-//         }
-// 		else {
-// 			return __real_open(pathname, flags, mode);
-// 		}
-// 	}
+	MAP_OR_FAIL(open);
+	if (g_disable_redirect || tl_disable_redirect){
+		if (use_mode) { //sy: add
+            return __real_open(pathname, flags, mode);
+        }
+		else {
+			return __real_open(pathname, flags, mode);
+		}
+	}
 
-// 	/* For now pass the open to GPFS  - I think the open is cheap
-// 	 * possibly asychronous.
-// 	 * If this impedes performance we can investigate a cheap way of generating
-// 	 * an FD
-// 	 */
-// 	ret = __real_open(pathname, flags, mode); //original code
-// 	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
+	/* For now pass the open to GPFS  - I think the open is cheap
+	 * possibly asychronous.
+	 * If this impedes performance we can investigate a cheap way of generating
+	 * an FD
+	 */
+	ret = __real_open(pathname, flags, mode); //original code
+	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
 
-// 	// C++ code determines whether to track
-// 	if (ret != -1){
-// 		if (hvac_track_file(pathname, flags, ret))
-// 		{
-// 			L4C_INFO("Open: Tracking file %s",pathname);
-// 		}
-// 		else{
-//             //L4C_INFO("Tracking %s failed", pathname); 
-// 		}
-// 	}
-// 	return ret;
-// }
-
-
-
-// int WRAP_DECL(close)(int fd)
-// {
-// 	int ret = 0;
-
-// 	/* Check if hvac data has been initialized? Can we possibly hit a close call before an open call? */
-// 	MAP_OR_FAIL(close);
-// 	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
-
-// 	const char *path = hvac_get_path(fd);
-// 	if (path)
-// 	{
-// 		L4C_INFO("Close to file %s",path);
-// 		hvac_remove_fd(fd);
-// 	}
-// 	//L4C_INFO("Close - path: %s", path); 
+	// C++ code determines whether to track
+	if (ret != -1){
+		if (hvac_track_file(pathname, flags, ret))
+		{
+			L4C_INFO("Open: Tracking file %s",pathname);
+		}
+		else{
+            //L4C_INFO("Tracking %s failed", pathname); 
+		}
+	}
+	return ret;
+}
 
 
-// 	if ((ret = __real_close(fd)) != 0)
-// 	{
-// 		L4C_PERROR("Error from close");
-// 		return ret;
-// 	}
 
-// 	return ret;
-// }
+int WRAP_DECL(close)(int fd)
+{
+	int ret = 0;
 
-// ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
-// {
-// 	int ret = -1;
+	/* Check if hvac data has been initialized? Can we possibly hit a close call before an open call? */
+	MAP_OR_FAIL(close);
+	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
+
+	const char *path = hvac_get_path(fd);
+	if (path)
+	{
+		L4C_INFO("Close to file %s",path);
+		hvac_remove_fd(fd);
+	}
+	//L4C_INFO("Close - path: %s", path); 
+
+
+	if ((ret = __real_close(fd)) != 0)
+	{
+		L4C_PERROR("Error from close");
+		return ret;
+	}
+
+	return ret;
+}
+
+ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
+{
+	int ret = -1;
 	
-// 	//remove me
-//     MAP_OR_FAIL(read);	
+	//remove me
+    MAP_OR_FAIL(read);	
 	
-//     const char *path = hvac_get_path(fd);
+    const char *path = hvac_get_path(fd);
 
-// 	ret = hvac_remote_read(fd,buf,count);
+	ret = hvac_remote_read(fd,buf,count);
 
-//     //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
+    //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
 	
-// 	if (path)
-//     {
-//         L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
-//     }
+	if (path)
+    {
+        L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
+    }
 	
-// 	if (ret < 0)
-// 	{
-// 		ret = __real_read(fd,buf,count);	
-// 	}
+	if (ret < 0)
+	{
+		ret = __real_read(fd,buf,count);	
+	}
 		
-//     return ret;
-// }
+    return ret;
+}
 
-// /* sy: function for debugging */
-// char *buffer_to_hex(const void *buf, size_t size) {
-//     const char *hex_digits = "0123456789ABCDEF";
-//     const unsigned char *buffer = (const unsigned char *)buf;
-//     char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
-//     if (!hex_str) {
-//         perror("malloc");
-//         return NULL;
-//     }
-//     for (size_t i = 0; i < size; ++i) {
-//         hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
-//         hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
-//     }
-//     hex_str[size * 2] = '\0'; // Null terminator
-//     return hex_str;
-// }
+/* sy: function for debugging */
+char *buffer_to_hex(const void *buf, size_t size) {
+    const char *hex_digits = "0123456789ABCDEF";
+    const unsigned char *buffer = (const unsigned char *)buf;
+    char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
+    if (!hex_str) {
+        perror("malloc");
+        return NULL;
+    }
+    for (size_t i = 0; i < size; ++i) {
+        hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
+        hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
+    }
+    hex_str[size * 2] = '\0'; // Null terminator
+    return hex_str;
+}
 
 
-// ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
-// {
-// 	ssize_t ret = -1;
-// 	MAP_OR_FAIL(pread);
+ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
+{
+	ssize_t ret = -1;
+	MAP_OR_FAIL(pread);
 
-// 	const char *path = hvac_get_path(fd);
-// 	L4C_INFO("Pread - path: %s", path); 
+	const char *path = hvac_get_path(fd);
+	L4C_INFO("Pread - path: %s", path); 
 
-// 	if (path)
-// 	{                
-// //		L4C_INFO("pread to tracked file %s",path);
+	if (path)
+	{                
+//		L4C_INFO("pread to tracked file %s",path);
 		
-// //		memset(buf, 0, count);
-// 		ret = hvac_remote_pread(fd, buf, count, offset);
+//		memset(buf, 0, count);
+		ret = hvac_remote_pread(fd, buf, count, offset);
 
-// /*
-//             if (ret >0) {
-// 		            char *hex_buf = buffer_to_hex(buf, ret);
-//                 L4C_INFO("Buffer content after remote read: %s\n", hex_buf);
-//                 free(hex_buf);
-//             }
-// 		memset(buf, 0, count);
-// 		ssize_t cnt = __real_pread(fd, buf, count, offset);
-// 		 char *hex_buff = buffer_to_hex(buf,cnt);
-//             if (hex_buff) {
-//                 L4C_INFO("Buffer content after real read: %s\n", hex_buff);
-//                 free(hex_buff);
-//             }
+/*
+            if (ret >0) {
+		            char *hex_buf = buffer_to_hex(buf, ret);
+                L4C_INFO("Buffer content after remote read: %s\n", hex_buf);
+                free(hex_buf);
+            }
+		memset(buf, 0, count);
+		ssize_t cnt = __real_pread(fd, buf, count, offset);
+		 char *hex_buff = buffer_to_hex(buf,cnt);
+            if (hex_buff) {
+                L4C_INFO("Buffer content after real read: %s\n", hex_buff);
+                free(hex_buff);
+            }
 			
-//                 L4C_INFO("offset %d bytesRead original %d bytesRead hvac %d\n", offset, cnt, ret);
-// */
-// 		if(ret < 0){
+                L4C_INFO("offset %d bytesRead original %d bytesRead hvac %d\n", offset, cnt, ret);
+*/
+		if(ret < 0){
 			
-// 			L4C_INFO("remote pread_error returned %s",path);
-// 			ret = __real_pread(fd,buf,count,offset);
-// 			L4C_INFO("readbytes %d\n", ret);
-// 		}
-// 	}
-// 	else
-// 	{
-// 		ret = __real_pread(fd,buf,count,offset);
-// 	}
+			L4C_INFO("remote pread_error returned %s",path);
+			ret = __real_pread(fd,buf,count,offset);
+			L4C_INFO("readbytes %d\n", ret);
+		}
+	}
+	else
+	{
+		ret = __real_pread(fd,buf,count,offset);
+	}
 
-// 	return ret;
-// }
-
-
-
-// ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
-// {
-// 	//remove me
-// 	MAP_OR_FAIL(read64);
-
-
-// 	const char *path = hvac_get_path(fd);
-// 	if (path)
-// 	{
-// 		L4C_INFO("Read64 to file %s of size %ld",path,count);
-// 	}
-// 	L4C_INFO("read64 - path: %s", path); 
-
-
-// 	return __real_read64(fd,buf,count);
-// }
-// /*
-// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
-// {
-// 	MAP_OR_FAIL(write);
-// 	return __real_write(fd, buf, count);
-
-// 	const char *path = hvac_get_path(fd);
-// 	if (path)
-// 	{
-// 		L4C_ERR("Write to file %s of size %ld",path,count);
-// 		assert(false);
-// 	}
-// 	L4C_INFO("write - path: %s", path); 
-
-
-// 	return __real_write(fd, buf, count);
-// }
-// */
-
-
-// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
-// {
-//     MAP_OR_FAIL(write);  // Resolves the real `write` function.
-
-//     const char *path = hvac_get_path(fd);
-//     if (path) {
-//         // Handle caching logic here
-//         ssize_t cached_write = hvac_cache_write(fd, buf, count);
-//         if (cached_write > 0) {
-// 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
-//             return cached_write;  // Successfully written to cache
-//         }
-//     }
-
-//     // If not cached or an error occurs, perform the real write
-//     return __real_write(fd, buf, count);
-// }
+	return ret;
+}
 
 
 
+ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
+{
+	//remove me
+	MAP_OR_FAIL(read64);
 
 
-// off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
-// {
-// 	MAP_OR_FAIL(lseek);
-// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
-
-// 	if (hvac_file_tracked(fd)){
-// 		L4C_INFO("Got an LSEEK on a tracked file %d %ld\n", fd, offset);	
-// 		return hvac_remote_lseek(fd,offset,whence);
-// 	}
-// 	return __real_lseek(fd, offset, whence);
-// }
-
-// off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
-// {
-// 	MAP_OR_FAIL(lseek64);
-// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
-// 	if (hvac_file_tracked(fd)){
-// 		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld\n", fd, offset);	
-// 		return hvac_remote_lseek(fd,offset,whence);
-// 	}
-// 	return __real_lseek64(fd, offset, whence);
-// }
-
-// ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
-// {
-// 	MAP_OR_FAIL(readv);
-// 	const char *path = hvac_get_path(fd);
-// 	if (path)
-// 	{
-// 		L4C_INFO("Readv to tracked file %s",path);
-// 	}
-// 	L4C_INFO("Pread - path: %s", path); 
+	const char *path = hvac_get_path(fd);
+	if (path)
+	{
+		L4C_INFO("Read64 to file %s of size %ld",path,count);
+	}
+	L4C_INFO("read64 - path: %s", path); 
 
 
-// 	return __real_readv(fd, iov, iovcnt);
+	return __real_read64(fd,buf,count);
+}
+/*
+ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
+{
+	MAP_OR_FAIL(write);
+	return __real_write(fd, buf, count);
 
-// }
+	const char *path = hvac_get_path(fd);
+	if (path)
+	{
+		L4C_ERR("Write to file %s of size %ld",path,count);
+		assert(false);
+	}
+	L4C_INFO("write - path: %s", path); 
+
+
+	return __real_write(fd, buf, count);
+}
+*/
+
+
+ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
+{
+    MAP_OR_FAIL(write);  // Resolves the real `write` function.
+
+    const char *path = hvac_get_path(fd);
+    if (path) {
+        // Handle caching logic here
+        ssize_t cached_write = hvac_cache_write(fd, buf, count);
+        if (cached_write > 0) {
+			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
+            return cached_write;  // Successfully written to cache
+        }
+    }
+
+    // If not cached or an error occurs, perform the real write
+    return __real_write(fd, buf, count);
+}
+
+
+
+off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
+{
+	MAP_OR_FAIL(lseek);
+	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
+
+	if (hvac_file_tracked(fd)){
+		L4C_INFO("Got an LSEEK on a tracked file %d %ld\n", fd, offset);	
+		return hvac_remote_lseek(fd,offset,whence);
+	}
+	return __real_lseek(fd, offset, whence);
+}
+
+off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
+{
+	MAP_OR_FAIL(lseek64);
+	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
+	if (hvac_file_tracked(fd)){
+		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld\n", fd, offset);	
+		return hvac_remote_lseek(fd,offset,whence);
+	}
+	return __real_lseek64(fd, offset, whence);
+}
+
+ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
+{
+	MAP_OR_FAIL(readv);
+	const char *path = hvac_get_path(fd);
+	if (path)
+	{
+		L4C_INFO("Readv to tracked file %s",path);
+	}
+	L4C_INFO("Pread - path: %s", path); 
+
+
+	return __real_readv(fd, iov, iovcnt);
+
+}
 
 
 
