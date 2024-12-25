@@ -49,6 +49,7 @@ static void __attribute__((constructor)) hvac_client_init()
   }
   hvac_init_logging();
 
+  L4C_INFO("1");
   char *hvac_data_dir_c = getenv("HVAC_DATA_DIR");
   char *hvac_checkpoint_dir_c = getenv("HVAC_CHECKPOINT_DIR");
 
@@ -68,6 +69,8 @@ static void __attribute__((constructor)) hvac_client_init()
     hvac_client_per_node = atoi(getenv("HVAC_CLIENT_PER_NODE")); 
   }
 
+  L4C_INFO("2");
+
   if (hvac_data_dir_c != NULL)
   {
     hvac_data_dir = (char *)malloc(strlen(hvac_data_dir_c) + 1);
@@ -80,11 +83,19 @@ static void __attribute__((constructor)) hvac_client_init()
     snprintf(hvac_checkpoint_dir, strlen(hvac_checkpoint_dir_c) + 1, "%s", hvac_checkpoint_dir_c);
   }
 
+  L4C_INFO("3");
+
   /* sy: add */
   initialize_hash_ring(g_hvac_server_count, VIRTUAL_NODE_CNT);
+  L4C_INFO("4");
+
   hvac_get_addr();
+  L4C_INFO("5");
+
   g_hvac_initialized = true;
   pthread_mutex_unlock(&init_mutex);
+
+  L4C_INFO("6");
 
   g_disable_redirect = false;
 }
