@@ -122,15 +122,15 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
 
 	// C++ code determines whether to track
-	if (ret != -1){
-		if (hvac_track_file(pathname, flags, ret))
-		{
-			L4C_INFO("Open: Tracking file %s",pathname);
-		}
-		else{
-            //L4C_INFO("Tracking %s failed", pathname); 
-		}
-	}
+	// if (ret != -1){
+	// 	if (hvac_track_file(pathname, flags, ret))
+	// 	{
+	// 		L4C_INFO("Open: Tracking file %s",pathname);
+	// 	}
+	// 	else{
+    //         //L4C_INFO("Tracking %s failed", pathname); 
+	// 	}
+	// }
 	return ret;
 }
 
@@ -161,35 +161,6 @@ int WRAP_DECL(close)(int fd)
 
 	return ret;
 }
-
-/*
-ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
-{
-	int ret = -1;
-	
-	//remove me
-    MAP_OR_FAIL(read);	
-	
-    const char *path = hvac_get_path(fd);
-
-	ret = hvac_remote_read(fd,buf,count);
-
-	if (path)
-    {
-        L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
-    }
-	
-	if (ret < 0)
-	{
-		ret = __real_read(fd,buf,count);	
-	}
-		
-    return ret;
-}
-
-*/
-
-
 
 ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 {
