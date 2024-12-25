@@ -136,31 +136,31 @@ extern __thread bool tl_disable_redirect;
 
 
 
-int WRAP_DECL(close)(int fd)
-{
-	int ret = 0;
+// int WRAP_DECL(close)(int fd)
+// {
+// 	int ret = 0;
 
-	/* Check if hvac data has been initialized? Can we possibly hit a close call before an open call? */
-	MAP_OR_FAIL(close);
-	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
+// 	/* Check if hvac data has been initialized? Can we possibly hit a close call before an open call? */
+// 	MAP_OR_FAIL(close);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
 
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{
-		L4C_INFO("Close to file %s",path);
-		hvac_remove_fd(fd);
-	}
-	//L4C_INFO("Close - path: %s", path); 
+// 	const char *path = hvac_get_path(fd);
+// 	if (path)
+// 	{
+// 		L4C_INFO("Close to file %s",path);
+// 		hvac_remove_fd(fd);
+// 	}
+// 	//L4C_INFO("Close - path: %s", path); 
 
 
-	if ((ret = __real_close(fd)) != 0)
-	{
-		L4C_PERROR("Error from close");
-		return ret;
-	}
+// 	if ((ret = __real_close(fd)) != 0)
+// 	{
+// 		L4C_PERROR("Error from close");
+// 		return ret;
+// 	}
 
-	return ret;
-}
+// 	return ret;
+// }
 
 // ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 // {
@@ -188,89 +188,60 @@ int WRAP_DECL(close)(int fd)
 //     return ret;
 // }
 
-/* sy: function for debugging */
-char *buffer_to_hex(const void *buf, size_t size) {
-    const char *hex_digits = "0123456789ABCDEF";
-    const unsigned char *buffer = (const unsigned char *)buf;
-    char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
-    if (!hex_str) {
-        perror("malloc");
-        return NULL;
-    }
-    for (size_t i = 0; i < size; ++i) {
-        hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
-        hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
-    }
-    hex_str[size * 2] = '\0'; // Null terminator
-    return hex_str;
-}
 
 
-ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
-{
-	ssize_t ret = -1;
-	MAP_OR_FAIL(pread);
 
-	const char *path = hvac_get_path(fd);
-	L4C_INFO("Pread - path: %s", path); 
+// ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
+// {
+// 	ssize_t ret = -1;
+// 	MAP_OR_FAIL(pread);
 
-	if (path)
-	{                
-		L4C_INFO("pread to tracked file %s",path);
+// 	const char *path = hvac_get_path(fd);
+// 	L4C_INFO("Pread - path: %s", path); 
+
+// 	if (path)
+// 	{                
+// 		L4C_INFO("pread to tracked file %s",path);
 		
-//		memset(buf, 0, count);
-		ret = hvac_remote_pread(fd, buf, count, offset);
+// //		memset(buf, 0, count);
+// 		ret = hvac_remote_pread(fd, buf, count, offset);
 
-/*
-            if (ret >0) {
-		            char *hex_buf = buffer_to_hex(buf, ret);
-                L4C_INFO("Buffer content after remote read: %s\n", hex_buf);
-                free(hex_buf);
-            }
-		memset(buf, 0, count);
-		ssize_t cnt = __real_pread(fd, buf, count, offset);
-		 char *hex_buff = buffer_to_hex(buf,cnt);
-            if (hex_buff) {
-                L4C_INFO("Buffer content after real read: %s\n", hex_buff);
-                free(hex_buff);
-            }
+// 		if(ret < 0){
 			
-                L4C_INFO("offset %d bytesRead original %d bytesRead hvac %d\n", offset, cnt, ret);
-*/
-		if(ret < 0){
-			
-			L4C_INFO("remote pread_error returned %s",path);
-			ret = __real_pread(fd,buf,count,offset);
-			L4C_INFO("readbytes %d\n", ret);
-		}
-	}
-	else
-	{
-		ret = __real_pread(fd,buf,count,offset);
-	}
+// 			L4C_INFO("remote pread_error returned %s",path);
+// 			ret = __real_pread(fd,buf,count,offset);
+// 			L4C_INFO("readbytes %d\n", ret);
+// 		}
+// 	}
+// 	else
+// 	{
+// 		ret = __real_pread(fd,buf,count,offset);
+// 	}
 
-	return ret;
-}
+// 	return ret;
+// }
 
 
 
-ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
-{
-	//remove me
-	MAP_OR_FAIL(read64);
+// ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
+// {
+// 	//remove me
+// 	MAP_OR_FAIL(read64);
 
 
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{
+// 	const char *path = hvac_get_path(fd);
+// 	if (path)
+// 	{
 		
-		L4C_INFO("Read64 to file %s of size %ld",path,count);
-	}
-	L4C_INFO("read64 - path: %s", path); 
+// 		L4C_INFO("Read64 to file %s of size %ld",path,count);
+// 	}
+// 	L4C_INFO("read64 - path: %s", path); 
 
 
-	return __real_read64(fd,buf,count);
-}
+// 	return __real_read64(fd,buf,count);
+// }
+
+
 /*
 ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 {
@@ -351,7 +322,22 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 // }
 
 
-
+/* sy: function for debugging */
+char *buffer_to_hex(const void *buf, size_t size) {
+    const char *hex_digits = "0123456789ABCDEF";
+    const unsigned char *buffer = (const unsigned char *)buf;
+    char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
+    if (!hex_str) {
+        perror("malloc");
+        return NULL;
+    }
+    for (size_t i = 0; i < size; ++i) {
+        hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
+        hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
+    }
+    hex_str[size * 2] = '\0'; // Null terminator
+    return hex_str;
+}
 
 
 
