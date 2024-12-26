@@ -464,9 +464,9 @@ void hvac_remote_close(int fd)
 {
   // fd로써 access_mode 추출... 읽기 모드시에만 rpc 전송
   int flag = fcntl(fd, F_GETFL);   
-  int access_mode = flag && O_ACCMODE; 
+  int access_mode = flag & O_ACCMODE; 
 
-  if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+  //if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
   {
     
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;

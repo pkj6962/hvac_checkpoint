@@ -543,7 +543,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
     
     if (ppath.find(test) != string::npos)
     {
-      L4C_INFO("Tracked write path is in checkpoint_dir")
+      L4C_INFO("Tracked write path is in checkpoint_dir"); 
       // 체크포인트 쓰기 모드
       if ((in.flag & O_ACCMODE) == O_WRONLY)
       {  

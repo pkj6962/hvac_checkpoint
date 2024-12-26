@@ -269,7 +269,6 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
     const char *path = hvac_get_path(fd);
     if (path) {
         // Handle caching logic here
-		L4C_INFO("write: this should not be readed");
         ssize_t cached_write = hvac_cache_write(fd, buf, count);
         if (cached_write > 0) {
 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
