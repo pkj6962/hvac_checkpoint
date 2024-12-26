@@ -215,7 +215,9 @@ bool hvac_track_file(const char *path, int flags, int fd)
     hvac_open_state_p->mutex = &mutex;
 
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    // 디버깅 목적으로 임시로 mpi_rank로 클라이언트 랭크 판단 
     int current_host = atoi(getenv("PMI_RANK"));
+    // int current_host = atoi(getenv("MPI_RANK"));
     //TODO: Invalidate host update when the target server is on local. 
     if (is_write_mode)
     {
@@ -259,6 +261,7 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     // Generate the write RPC request.
     // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     int current_host = atoi(getenv("PMI_RANK"));
+    // int current_host = atoi(getenv("MPI_RANK"));
     int host = current_host / hvac_client_per_node; 
     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
