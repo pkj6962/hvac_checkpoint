@@ -131,11 +131,18 @@ ssize_t hvac_read_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pth
 ssize_t hvac_write_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pthread_cond_t *cond, pthread_mutex_t *mutex);
 ssize_t hvac_seek_block();
 
+
+
+
 // For FT
 void initialize_hash_ring(int serverCount, int vnodes);
 void extract_ip_portion(const char *full_address, char *ip_portion, size_t max_len);
 /*sy: function for debugging */
 char *buffer_to_hex(const void *buf, size_t size);
+
+
+
+
 
 /*sy: functions for logging */
 void initialize_log(int rank, const char *type);

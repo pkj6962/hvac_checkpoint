@@ -36,36 +36,13 @@ void CheckpointManager::allocate_new_chunk()
   global_chunk_index = chunks.size() - 1;
 }
 
-// void CheckpointManager::send_chunk_to_remote(const std::string &filename, const char *data, size_t size, int local_fd)
-// {
-//   ssize_t bytes_written = -1;
-//   hg_bool_t done = HG_FALSE;
-//   pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-//   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-//   int host = std::hash<std::string>{}(filename) % server_count;
-//   int current_host = atoi(getenv("PMI_RANK"));
-//   if (host == current_host)
-//   {
-//     host = (host + 1) % server_count;
-//   }
-
-//   hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
-//   hvac_rpc_state_p->bytes_written = &bytes_written;
-//   hvac_rpc_state_p->done = &done;
-//   hvac_rpc_state_p->cond = &cond;
-//   hvac_rpc_state_p->mutex = &mutex;
-
-//   hvac_client_comm_gen_write_rpc(host, local_fd, data, size, -1, hvac_rpc_state_p);
-//   bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
-// }
 
 void CheckpointManager::write_checkpoint(const std::string &filename, const void *buf, size_t count, int local_fd)
 {
   const char *data = static_cast<const char *>(buf);
   size_t remaining = count;
 
-  std::lock_guard<std::mutex> lock(mtx); // Ensure thread safety
+  // std::lock_guard<std::mutex> lock(mtx); // Ensure thread safety
 
   auto &meta = file_metadata[filename];
   size_t &current_chunk_index = current_file_chunk_index[filename];
@@ -156,6 +133,7 @@ void CheckpointManager::read_file_metadata(const std::string &filename)
 }
 
 
+// Function called on the Read mode open
 int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
 {
   /*
@@ -163,11 +141,16 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
   */ 
  int fd; 
   try{
+    // TODO: we have to check whether FILENAME is stored in FILE_METADATA
     fd = global_fd;
     global_fd -= 1; 
 
     fd_to_path[fd] = filename;
     fd_to_offset[fd] = 0; 
+
+    // 오픈 시도하는 파일에 대한 메타데이터 조사: 
+    read_file_metadata(filename); 
+
   }
   catch (...)
   {
@@ -202,8 +185,18 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
     auto &meta = file_metadata[filename];
     size_t remaining = count;
     size_t readbytes = 0; 
-    char *output_buf = static_cast<char *>(buf);
 
+
+    
+    
+ 
+    // Debug: Mercury latency 조사 - 서버 do nothing 
+    // 현재 오프셋, 카운트, 파일 크기 기준으로 총읽기량 결정 
+    // size_t to_read = (fd_to_offset[fd] + count <= meta.size)? count : meta.size - fd_to_offset[fd];
+    // fd_to_offset[fd] += to_read; 
+    // readbytes = to_read; 
+     
+    char *output_buf = static_cast<char *>(buf);
     while (remaining > 0 && offset < meta.size)
     {
         // Determine the chunk index and position within the chunk
@@ -227,6 +220,8 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
         output_buf += to_read;
         remaining -= to_read;
         offset += to_read;
+        // 파일 오프셋은 읽어나갈 수록 바뀌어나가 
+        fd_to_offset[fd] += to_read; 
         readbytes += to_read; 
     }
 
@@ -246,15 +241,62 @@ int CheckpointManager::close_checkpoint(int fd)
   }
   fd_to_path.erase(fd);
   fd_to_offset.erase(fd); 
+
+  // 마지막으로 읽은 시점의 offset 조사
+  L4C_INFO("checkpoint manager - close: %s %lld", fd_to_path[fd].c_str(), fd_to_offset[fd]); 
+
+
   return 0; 
 }
 
 off_t CheckpointManager::lseek_checkpoint(int fd, off_t offset, int whence)
 {
-  /*
-  TODO: 
-  기존 lseek 로직 따라 fd_to_offset[fd] 값 변경
-  */
+  if (fd_to_offset.find(fd) == fd_to_offset.end())
+  {
+    L4C_INFO("checkpoint_manager - Lseek: Invalid File Descriptor"); 
+  }
 
+  switch(whence)
+  {
+    case SEEK_SET: 
+      fd_to_offset[fd] = offset; break; 
+    case SEEK_CUR: 
+      fd_to_offset[fd] = fd_to_offset[fd] + offset; break; 
+    case SEEK_END:  
+      L4C_INFO("checkpoint manager - lseek: it reaches on SEEK_END case: Check if it is valid operation"); 
+      // fd_to_path 로 file_path 얻고 이로써 file_metadtaa 취할 수 있어 
+      string file_path = fd_to_path[fd]; 
+      auto & meta = file_metadata[file_path]; 
+      fd_to_offset[fd] = meta.size + offset; 
+      // We should set offset in further write as much as not only bytes written but also offset increased this time.
+  }
+
+  L4C_INFO("lseek:  lseek 후 offset: %lld (%s, %lld, %d)", fd_to_offset[fd], fd_to_path[fd].c_str(), offset, whence);  // (파일:오프셋: (fd, offset, whence)
+  return fd_to_offset[fd]; 
 
 }
+
+
+// void CheckpointManager::send_chunk_to_remote(const std::string &filename, const char *data, size_t size, int local_fd)
+// {
+//   ssize_t bytes_written = -1;
+//   hg_bool_t done = HG_FALSE;
+//   pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+//   pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+//   int host = std::hash<std::string>{}(filename) % server_count;
+//   int current_host = atoi(getenv("PMI_RANK"));
+//   if (host == current_host)
+//   {
+//     host = (host + 1) % server_count;
+//   }
+
+//   hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
+//   hvac_rpc_state_p->bytes_written = &bytes_written;
+//   hvac_rpc_state_p->done = &done;
+//   hvac_rpc_state_p->cond = &cond;
+//   hvac_rpc_state_p->mutex = &mutex;
+
+//   hvac_client_comm_gen_write_rpc(host, local_fd, data, size, -1, hvac_rpc_state_p);
+//   bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
+// }

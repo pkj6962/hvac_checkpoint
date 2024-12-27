@@ -128,6 +128,19 @@ bool hvac_track_file(const char *path, int flags, int fd)
     return false;
   }
 
+  if (strstr(path, ".metadata") != NULL)
+  {
+    return false;
+  }
+
+  // 임시 코드 - 디버깅 후 삭제 예정 
+  if (strstr(path, "strace_output") != NULL)
+  {
+    return false;
+  }
+
+
+
   bool tracked = false;
   bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
   bool is_read_mode = (flags & O_ACCMODE) == O_RDONLY || (flags & O_ACCMODE) == O_RDWR;
@@ -153,18 +166,17 @@ bool hvac_track_file(const char *path, int flags, int fd)
           fd_map[fd] = std::filesystem::canonical(path).string();
           tracked = true;
         }
-        else if (ppath == std::filesystem::current_path())
-        {
-          L4C_INFO("Tracking used CWD file %s", path);
-          fd_map[fd] = std::filesystem::canonical(path).string();
-          tracked = true;
-        }
+        // 이 조건이 필요한지 확인 필요
+        // else if (ppath == std::filesystem::current_path())
+        // {
+        //   L4C_INFO("Tracking used CWD file %s", path);
+        //   fd_map[fd] = std::filesystem::canonical(path).string();
+        //   tracked = true;
+        // }
       }
       if (hvac_checkpoint_dir != NULL)
       {
         // 체크포인트 복구: 읽기 모드이고 파일 경로가 체크포인트 디렉토리 내부인 경우
-        // TODO: 실패 후 "재시작"를 위한 읽기인지, 최초 학습 "시작"을 위한 읽기인지 구분 필요해
-        // 썌얘:  
         std::string test = std::filesystem::canonical(hvac_checkpoint_dir);
         if (ppath.find(test) != std::string::npos)
         {
@@ -218,16 +230,15 @@ bool hvac_track_file(const char *path, int flags, int fd)
     // 디버깅 목적으로 임시로 mpi_rank로 클라이언트 랭크 판단 
     int current_host = atoi(getenv("PMI_RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
-    //TODO: Invalidate host update when the target server is on local. 
+    
+
     if (is_write_mode)
     {
-      // TODO: 체크포인트 쓰기 시, Local DRAM으로 Redirect
       host = current_host / hvac_client_per_node;
     }
     else if (is_read_mode)
     {
-      // TODO: 체크포인트 읽기 시, 파일경로에서 추출한 rank와 동일한 노드의 서버로 리다이렉트
-      // host = extract_rank(fd_map[fd]) / CLIENT_PER_NODE
+      host = hvac_extract_rank(fd_map[fd].c_str()) / hvac_client_per_node; 
     }      
   
     L4C_INFO("Remote open - Host %d %s", host, path);
@@ -262,11 +273,13 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     int current_host = atoi(getenv("PMI_RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
+    
     int host = current_host / hvac_client_per_node; 
     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
     // Wait for the server to process the write request.
     bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
+    L4C_INFO("bytes_written:%lld", bytes_written); 
     if (bytes_written == -1)
     {
       fd_map.erase(fd);
@@ -344,40 +357,13 @@ ssize_t hvac_remote_read(int fd, void *buf, size_t count)
       2) erase the fd from the fd_map */
   if (hvac_file_tracked(fd))
   {
-
     L4C_INFO("remote-read:a");
-    int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    // HVAC recovery: Logic to find the server that stores in-memory checkpoint 
+    int client_rank = hvac_extract_rank(fd_map[fd].c_str()); 
+    int host = client_rank / hvac_client_per_node;  
+    
 
-    // TODO 
-    /*
-    fd_map[fd]로부터 client_rank 추출...
-    client_rank <- extract_client_rank(fd_map[fd]); 
-    host = client_rank / CLIENT_PER_NODE;  
-    */
-
-
-
-    /*
-        string hostname = hashRing->GetNode(fd_map[fd]);
-        int host = hashRing->ConvertHostToNumber(hostname);
-//        L4C_INFO("Remote read - Host %d", host);
-        {
-            std::lock_guard<std::mutex> lock(timeout_mutex);
-
-  //          L4C_INFO("host %d\n", host);
-//          L4C_INFO("cnt %d\n",timeout_counters[host]);
-            if (timeout_counters[host] >= TIMEOUT_LIMIT && !failure_flags[host]) {
-                L4C_INFO("Host %d reached timeout limit, skipping", host);
-                hashRing->RemoveNode(hostname);
-                failure_flags[host] = true;
-//                hostname = hashRing->GetNode(fd_map[fd]);
-//                host = hashRing->ConvertHostToNumber(hostname);
-        fd_map.erase(fd);
-        return bytes_read;
-            }
-        }
-        */
-    // sy: modified logic
     hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
     hvac_rpc_state_p->bytes_read = &bytes_read;
     hvac_rpc_state_p->done = &done;
@@ -416,13 +402,11 @@ ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offset)
           2) erase the fd from the fd_map */
   if (hvac_file_tracked(fd))
   {
-    int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
-    // TODO 
-    /*
-    fd_map[fd]로부터 client_rank 추출...
-    client_rank <- extract_client_rank(fd_map[fd]); 
-    host = client_rank / CLIENT_PER_NODE;  
-    */
+    // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    // HVAC recovery: Logic to find the server that stores in-memory checkpoint 
+    int client_rank = hvac_extract_rank(fd_map[fd].c_str()); 
+    int host = client_rank / hvac_client_per_node;
+    
     // sy: modified logic
     hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
     hvac_rpc_state_p->bytes_read = &bytes_read;
@@ -452,11 +436,14 @@ ssize_t hvac_remote_lseek(int fd, int offset, int whence)
   if (hvac_file_tracked(fd))
   {
     //		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
-    string hostname = hashRing->GetNode(fd_map[fd]);
-    int host = hashRing->ConvertHostToNumber(hostname);
+    // HVAC recovery: Logic to find the server that stores in-memory checkpoint 
+    int client_rank = hvac_extract_rank(fd_map[fd].c_str()); 
+    int host = client_rank / hvac_client_per_node;
+
     L4C_INFO("Remote seek - Host %d", host);
     hvac_client_comm_gen_seek_rpc(host, fd, offset, whence);
     bytes_read = hvac_seek_block();
+    L4C_INFO("bytes_lseek:%lld", bytes_read); 
     return bytes_read;
   }
   /* Non-HVAC Reads come from base */
@@ -469,11 +456,12 @@ void hvac_remote_close(int fd)
   int flag = fcntl(fd, F_GETFL);   
   int access_mode = flag & O_ACCMODE; 
 
-  //if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+  // if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
   {
     
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     // TODO: 체크포인트 쓰기 모드 시 별도의 close rpc 불필요 
+    // 체크포인트 쓰기시에도 일단 유지... 디버그 목적
     hvac_rpc_state_t_close *rpc_state = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));
     rpc_state->done = false;
     rpc_state->timeout = false;
@@ -531,4 +519,16 @@ bool hvac_remove_fd(int fd)
   hvac_remote_close(fd);
   return fd_map.erase(fd);
 }
+
+int hvac_extract_rank(const char* file_path)
+{
+  int rank, idx; 
+
+  string str = file_path;
+  idx = str.find_last_of('.');
+  rank = file_path[idx-3] - '0'; 
+  
+  return rank; 
+}
+
 

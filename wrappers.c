@@ -330,14 +330,17 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 }
 
 
-
 off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
 {
 	MAP_OR_FAIL(lseek);
 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
-
-	if (hvac_file_tracked(fd)){
-		L4C_INFO("Got an LSEEK on a tracked file %d %ld\n", fd, offset);	
+	
+	// 체크포인트 읽기 모드이면 lseek rpc 전송 
+	int flag = fcntl(fd, F_GETFL); 
+	int access_mode = flag & O_ACCMODE; 
+	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+	{
+		L4C_INFO("Got an LSEEK on a tracked file %d %ld %d\n", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
 	return __real_lseek(fd, offset, whence);
@@ -347,8 +350,12 @@ off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
 {
 	MAP_OR_FAIL(lseek64);
 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
-	if (hvac_file_tracked(fd)){
-		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld\n", fd, offset);	
+
+	int flag = fcntl(fd, F_GETFL); 
+	int access_mode = flag & O_ACCMODE; 
+	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+	{
+		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d\n", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
 	return __real_lseek64(fd, offset, whence);

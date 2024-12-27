@@ -130,17 +130,25 @@ void hvac_init_comm(hg_bool_t listen)
 
   /* Initialize Mercury with the desired network abstraction class */
   hg_class = HG_Init(info_string, listen);
+  // 공유 메모리 활성화 
+  // struct hg_init_info hg_init_info = {0};
+  // hg_init_info.auto_sm = HG_TRUE; // Enable shared-memory for local communication
+  // hg_class = HG_Init_opt(info_string, listen, &hg_init_info);  
   if (hg_class == NULL)
   {
     L4C_FATAL("Failed to initialize HG_CLASS Listen Mode : %d\n", listen);
   }
 
+  
+
+
   /* Initialize Mercury with the desired network abstraction class */
-  hg_class = HG_Init(info_string, listen);
-  if (hg_class == NULL)
-  {
-    L4C_FATAL("Failed to initialize HG_CLASS Listen Mode : %d\n", listen);
-  }
+  // JH: Duplicated Initalization: Typo?
+  // hg_class = HG_Init(info_string, listen);
+  // if (hg_class == NULL)
+  // {
+  //   L4C_FATAL("Failed to initialize HG_CLASS Listen Mode : %d\n", listen);
+  // }
 
   /* Create HG context */
   hg_context = HG_Context_create(hg_class);
@@ -337,6 +345,8 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   assert(info->ret == 0);
 
   out.ret = 0;
+  // Debug:클라이언트(응용)에게 bytes_written을 전달... 전달하면 Filesystem에 파일 안써져
+  out.ret = hvac_rpc_state_p->size; 
   ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out);
   assert(ret == HG_SUCCESS);
 
@@ -347,7 +357,8 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   int access_fd = hvac_rpc_state_p->in.accessfd;
   ssize_t writebytes = -1;
 
-  // TODO: checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
+  // checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
+  // Debug: 인메모리 체크포인트 쓰기 오버헤드 조사
   checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
   // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
@@ -421,7 +432,7 @@ hvac_rpc_handler(hg_handle_t handle)
         L4C_INFO("Checkpoint file read error"); 
       }
     }
-    L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.accessfd);
+    // L4C_INFO("Server Rank %d : Read %ld bytes from file %s, fd: %d", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.accessfd);
   }
   else
   {
@@ -600,11 +611,8 @@ hvac_close_rpc_handler(hg_handle_t handle)
     L4C_INFO("Close: File ws opened in  Other mode than read or wriet");
   }
 
-  /*
-  TODO: 파일 DRAM에 잘 써졌는지 디버깅 필요... 
-  총 파일 크기가 PFS 상 파일 크기와 맞는지 확인 필요
-  FilePath로써 체크포인트 청크 리스트 개수 등 파악해야   
-  */  
+  
+  // 파일 DRAM에 잘 써졌는지 확인 위한 디버깅: 총 파일 크기가 PFS 상 파일 크기와 맞는지 확인 
   if ((flags & O_ACCMODE) == O_WRONLY)
   {
     string filename = fd_to_path[in.fd]; 
@@ -634,10 +642,11 @@ hvac_close_rpc_handler(hg_handle_t handle)
   // Signal to the data mover to copy the file
   pthread_mutex_lock(&path_map_mutex); // sy: add
   bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
+  // File that was open in write mode should not be pushed into data_queue
   if ((flags & O_ACCMODE) == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
   {
     pthread_mutex_lock(&data_mutex);
-    // TODO: File that was open in write mode should not be pushed into data_queue
+    
     data_queue.push(fd_to_path[in.fd]);
     pthread_cond_signal(&data_cond);
     pthread_mutex_unlock(&data_mutex);
@@ -671,10 +680,9 @@ hvac_seek_rpc_handler(hg_handle_t handle)
   int ret = HG_Get_input(handle, &in);
   assert(ret == 0);
 
-  out.ret = lseek64(in.fd, in.offset, in.whence);
-
-  // checkpoint_manager.lseek_checkpoint(in.fd, in.offset, in.whence); 
-
+  // out.ret = lseek64(in.fd, in.offset, in.whence);
+  ret = checkpoint_manager.lseek_checkpoint(in.fd, in.offset, in.whence); 
+  out.ret = ret; 
   HG_Respond(handle, NULL, NULL, &out);
 
   return (hg_return_t)ret;

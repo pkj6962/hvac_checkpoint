@@ -148,6 +148,12 @@ extern "C" ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offs
 extern "C" ssize_t hvac_remote_lseek(int fd, int offset, int whence);
 extern "C" void hvac_remote_close(int fd);
 extern "C" bool hvac_file_tracked(int fd);
+
+// JH added
+extern "C" int hvac_extract_rank(const char* file_path); 
+
+
+
 #endif
 
 extern bool hvac_track_file(const char* path, int flags, int fd);
@@ -160,6 +166,9 @@ extern ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offset);
 extern ssize_t hvac_remote_lseek(int fd, int offset, int whence);
 extern void hvac_remote_close(int fd);
 extern bool hvac_file_tracked(int fd);
+
+// // JH added
+// extern int hvac_extract_rank(const char* file_path); 
 
 
 #endif

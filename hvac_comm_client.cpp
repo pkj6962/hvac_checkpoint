@@ -425,14 +425,21 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
   hg_handle_t handle;
   int ret;
 
+  L4C_INFO("1");
   /* Get address */
   svr_addr = hvac_client_comm_lookup_addr(svr_hash);
+
+
+  L4C_INFO("2");
 
   /* Allocate args for callback pass through */
   hvac_open_state_p->local_fd = fd;
 
+  L4C_INFO("3");
   /* create create handle to represent this rpc operation */
   hvac_comm_create_handle(svr_addr, hvac_client_open_id, &handle);
+
+  L4C_INFO("4");
 
   in.path = (hg_string_t)malloc(strlen(path.c_str()) + 1);
   sprintf(in.path, "%s", path.c_str());
@@ -443,6 +450,7 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
   // 체크포인트 읽기 또는 쓰기인지 구분 필요해 
   in.flag = fcntl(fd, F_GETFL);   
   
+  L4C_INFO("5");
 
 
 
@@ -450,11 +458,20 @@ void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_
   hvac_open_state_p->filepath[sizeof(hvac_open_state_p->filepath) - 1] = '\0'; // Ensure null termination
   hvac_open_state_p->svr_hash = svr_hash;
 
+  L4C_INFO("6");
+
+
   char server_addr[128];
   size_t server_addr_str_size = sizeof(server_addr);
   ret = HG_Addr_to_string(hvac_comm_get_class(), server_addr, &server_addr_str_size, svr_addr);
+
+  L4C_INFO("7");
+
+
   ret = HG_Forward(handle, hvac_open_cb, hvac_open_state_p, &in);
   assert(ret == 0);
+
+  L4C_INFO("8");
 
   hvac_comm_free_addr(svr_addr);
 
