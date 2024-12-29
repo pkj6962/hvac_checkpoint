@@ -12,7 +12,7 @@ extern "C"
 // CheckpointManager checkpoint_manager;
 
 
-int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
+// int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
 CheckpointChunk::CheckpointChunk()
     : buffer(std::make_unique<char[]>(CHUNK_SIZE)), offset(0), full(false) {}
 
@@ -186,10 +186,11 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
     size_t remaining = count;
     size_t readbytes = 0; 
 
+    // 체크포인트 요청 처리 핸들링 여부 로그 
+    L4C_INFO("checkpoint manager - read: %d %lld | %lld | %lld", fd, count, fd_to_offset[fd], meta.size); 
+
 
     
-    
- 
     // Debug: Mercury latency 조사 - 서버 do nothing 
     // 현재 오프셋, 카운트, 파일 크기 기준으로 총읽기량 결정 
     // size_t to_read = (fd_to_offset[fd] + count <= meta.size)? count : meta.size - fd_to_offset[fd];
@@ -213,7 +214,11 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
         CheckpointChunk *chunk = get_current_chunk(meta.chunk_indexes[chunk_index]);
 
         // Calculate how much data to read from this chunk
-        size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
+        // 현재는 남은요구읽기량, 청크내남은량만 고려... 파일 전체 남은량(meta.size-offset) 고려 안돼   
+        // size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
+        // 청크내남은량, 파일내남은양을 하나의 변수로 취급: 
+        // size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
+        size_t to_read = std::min(remaining, chunk->offset - chunk_offset);
         std::memcpy(output_buf, chunk->buffer.get() + chunk_offset, to_read);
 
         // Update pointers and counters
@@ -249,7 +254,7 @@ int CheckpointManager::close_checkpoint(int fd)
   return 0; 
 }
 
-off_t CheckpointManager::lseek_checkpoint(int fd, off_t offset, int whence)
+off64_t CheckpointManager::lseek_checkpoint(int fd, off64_t offset, int whence)
 {
   if (fd_to_offset.find(fd) == fd_to_offset.end())
   {
@@ -270,10 +275,8 @@ off_t CheckpointManager::lseek_checkpoint(int fd, off_t offset, int whence)
       fd_to_offset[fd] = meta.size + offset; 
       // We should set offset in further write as much as not only bytes written but also offset increased this time.
   }
-
-  L4C_INFO("lseek:  lseek 후 offset: %lld (%s, %lld, %d)", fd_to_offset[fd], fd_to_path[fd].c_str(), offset, whence);  // (파일:오프셋: (fd, offset, whence)
+  L4C_INFO("lseek:  %lld %lld", offset, fd_to_offset[fd]);  // (파일:오프셋: (fd, offset, whence)
   return fd_to_offset[fd]; 
-
 }
 
 

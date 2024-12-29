@@ -10,7 +10,7 @@
 
 // Define the size of each data chunk
 // Debug: 청크 크기에 따른 성능 조사
-#define CHUNK_SIZE (1L * 9600 * 1024 * 1024) ///< Chunk size is 24 MB
+#define CHUNK_SIZE (1L * 8200 * 1024 * 1024) ///< Chunk size is 24 MB
 
 /**
  * @brief Metadata structure to track file size and associated chunk indices.
@@ -45,7 +45,7 @@ private:
   std::unordered_map<std::string, FileMetadata> file_metadata;      ///< Tracks metadata of files.
   std::unordered_map<std::string, size_t> current_file_chunk_index; ///< Current chunk index for each file.
   std::unordered_map<int32_t, std::string> fd_to_path;
-  std::unordered_map<int32_t, int64_t> fd_to_offset;
+  std::unordered_map<int32_t, off64_t> fd_to_offset;
 
   std::vector<std::unique_ptr<CheckpointChunk>> chunks;             ///< Collection of all chunks.
   std::mutex mtx;                                                   ///< Mutex for thread-safety.
@@ -107,7 +107,7 @@ public:
   
   int close_checkpoint(int fd); 
 
-  off_t lseek_checkpoint(int fd, off_t offset, int whence); 
+  off_t lseek_checkpoint(int fd, off64_t offset, int whence); 
 
 
 };

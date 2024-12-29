@@ -122,6 +122,7 @@ void logging_info(log_info_t *info, const char *type)
 void hvac_init_comm(hg_bool_t listen)
 {
   const char *info_string = "ofi+verbs://";
+  // const char *info_string = "ofi://";
   //	char *rank_str = getenv("PMI_RANK");
   //    server_rank = atoi(rank_str);
   pthread_t hvac_progress_tid;
@@ -426,6 +427,7 @@ hvac_rpc_handler(hg_handle_t handle)
     //체크포인트 읽기 요청 위한 별도의 핸들링 
     else if (hvac_rpc_state_p->in.accessfd <= -2)
     {
+
       readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size); 
       if (readbytes == -1)
       {
@@ -681,8 +683,8 @@ hvac_seek_rpc_handler(hg_handle_t handle)
   assert(ret == 0);
 
   // out.ret = lseek64(in.fd, in.offset, in.whence);
-  ret = checkpoint_manager.lseek_checkpoint(in.fd, in.offset, in.whence); 
-  out.ret = ret; 
+  out.ret = checkpoint_manager.lseek_checkpoint(in.fd, in.offset, in.whence); 
+  // out.ret = ret; 
   HG_Respond(handle, NULL, NULL, &out);
 
   return (hg_return_t)ret;

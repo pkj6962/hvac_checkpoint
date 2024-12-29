@@ -371,6 +371,8 @@ ssize_t hvac_read_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pth
   return result;
 }
 
+
+// seek_block도 다른 함수처럼 바뀌어야 해  
 ssize_t hvac_seek_block()
 {
   ssize_t bytes_read;
@@ -526,11 +528,8 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   hvac_rpc_in_t in;
   const struct hg_info *hgi;
   int ret;
-
-  L4C_INFO("svr_addr: I'm here");
+  
   svr_addr = hvac_client_comm_lookup_addr(svr_hash);
-
-  L4C_INFO("svr_addr: %lld", svr_addr);
 
   /* set up state structure */
   hvac_rpc_state_p->size = count;
@@ -561,9 +560,6 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   in.input_val = count;
   // Convert FD to remote FD
   in.accessfd = fd_redir_map[localfd];
-
-  L4C_INFO("fd: %d %d", in.accessfd, localfd);
-
   in.localfd = localfd; // sy: add
   in.offset = offset;
   in.client_rank = client_rank;          // sy: add - for logging
@@ -577,7 +573,9 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   return;
 }
 
-void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, int offset, int whence)
+
+// void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, int offset, int whence, hvac_rpc_state_t_client * hvac_rpc_state_p)
+void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, off64_t offset, int whence)
 {
   hg_addr_t svr_addr;
   hvac_seek_in_t in;

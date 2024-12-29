@@ -99,8 +99,8 @@ MERCURY_GEN_PROC(hvac_write_out_t, ((int32_t)(ret)))
 MERCURY_GEN_PROC(hvac_write_in_t, ((int32_t)(input_val))((hg_bulk_t)(bulk_handle))((int32_t)(accessfd))((int32_t)(localfd))((int64_t)(offset))((int32_t)(client_rank)))
 
 // RPC Seek Handler
-MERCURY_GEN_PROC(hvac_seek_out_t, ((int32_t)(ret)))
-MERCURY_GEN_PROC(hvac_seek_in_t, ((int32_t)(fd))((int32_t)(offset))((int32_t)(whence)))
+MERCURY_GEN_PROC(hvac_seek_out_t, ((int64_t)(ret)))
+MERCURY_GEN_PROC(hvac_seek_in_t, ((int32_t)(fd))((int64_t)(offset))((int32_t)(whence)))
 
 // Close Handler input arg
 MERCURY_GEN_PROC(hvac_close_in_t, ((int32_t)(fd))((int32_t)(client_rank)))
@@ -119,7 +119,7 @@ hg_class_t *hvac_comm_get_class();
 hg_context_t *hvac_comm_get_context();
 
 // Client
-void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, int offset, int whence);
+void hvac_client_comm_gen_seek_rpc(uint32_t svr_hash, int fd, off64_t offset, int whence);
 void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p);
 void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p);
 void hvac_client_comm_gen_open_rpc(uint32_t svr_hash, string path, int fd, hvac_open_state_t *hvac_open_state_p);

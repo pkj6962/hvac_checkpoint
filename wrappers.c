@@ -226,12 +226,12 @@ ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
 	
 	if (path)
     {
-        L4C_INFO("Read to file %s of size %ld returning %ld bytes",path,count,ret);
+        L4C_INFO("Read to file %s of size %ld returning %lld bytes",path,count,ret);
     }
 	
 	if (ret < 0)
 	{
-		ret = __real_read(fd,buf,count);	
+		ret = __real_read(fd,buf,count);			
 	}
 		
     return ret;
@@ -338,9 +338,17 @@ off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
 	// 체크포인트 읽기 모드이면 lseek rpc 전송 
 	int flag = fcntl(fd, F_GETFL); 
 	int access_mode = flag & O_ACCMODE; 
+
+	// offset==0, whence==SEEK_CUR 제외한 요청은 특별히 로그
+	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
+	{
+		// 번호와 심볼 매핑 필요 
+		const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
+		L4C_INFO("lseek: %d %d %s", fd, offset, str);
+	}
 	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
 	{
-		L4C_INFO("Got an LSEEK on a tracked file %d %ld %d\n", fd, offset, whence);	
+		L4C_INFO("Got an LSEEK on a tracked file %d %lld %d", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
 	return __real_lseek(fd, offset, whence);
@@ -351,11 +359,16 @@ off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
 	MAP_OR_FAIL(lseek64);
 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
 
+	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
+	{
+		const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
+		L4C_INFO("lseek64: %d %lld %s", fd, offset, str);
+	}
 	int flag = fcntl(fd, F_GETFL); 
 	int access_mode = flag & O_ACCMODE; 
 	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
 	{
-		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d\n", fd, offset, whence);	
+		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
 	return __real_lseek64(fd, offset, whence);

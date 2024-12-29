@@ -132,6 +132,11 @@ bool hvac_track_file(const char *path, int flags, int fd)
   {
     return false;
   }
+  
+  if (strstr(path, "train_params.yaml") != NULL)
+  {
+    return false;
+  }
 
   // 임시 코드 - 디버깅 후 삭제 예정 
   if (strstr(path, "strace_output") != NULL)
@@ -148,11 +153,11 @@ bool hvac_track_file(const char *path, int flags, int fd)
   try
   {
     std::string ppath = std::filesystem::canonical(path).parent_path();
-    L4C_INFO("path: %s", path);
+    // L4C_INFO("path: %s", path);
 
     // Check if the file is for reading (existing HVAC_DATA_DIR tracking)
     int access_mode = flags & O_ACCMODE;
-    L4C_INFO("mode: %d", access_mode);
+    // L4C_INFO("mode: %d", access_mode);
 
     if ((flags & O_ACCMODE) == O_RDONLY)
     {
@@ -425,14 +430,21 @@ ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offset)
   return bytes_read;
 }
 
-ssize_t hvac_remote_lseek(int fd, int offset, int whence)
+
+ssize_t hvac_remote_lseek(int fd, off64_t offset, int whence)
 {
   /* HVAC Code */
   /* Check the local fd - if it's tracked we pass it to the RPC function
    * The local FD is converted to the remote FD with the buf and count
    * We must know the remote FD to avoid collision on the remote side
    */
-  ssize_t bytes_read = -1;
+  ssize_t bytes_lseek = -1;
+  // 자체 mutex 선언 
+  hg_bool_t done = HG_FALSE;
+  pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
   if (hvac_file_tracked(fd))
   {
     //		int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
@@ -440,15 +452,31 @@ ssize_t hvac_remote_lseek(int fd, int offset, int whence)
     int client_rank = hvac_extract_rank(fd_map[fd].c_str()); 
     int host = client_rank / hvac_client_per_node;
 
+
+    // 자체 hvac_rpc_state_t 자료구조 선언
+    // hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
+    // hvac_rpc_state_p->bytes_read = &bytes_read;
+    // hvac_rpc_state_p->done = &done;
+    // hvac_rpc_state_p->cond = &cond;
+    // hvac_rpc_state_p->mutex = &mutex;
+
+    // hvac_client_comm_gen_seek_rpc에 자체 자료구조 패스 
+    // hvac_client_comm_gen_seek_rpc(host, fd, offset, whence, hvac_rpc_state_p);
+    
+    // hvac_seek_block에 
+    // bytes_lseek =  hvac_seek_block(host, &done, &bytes_lseek, &cond, &mutex); 
+
+
     L4C_INFO("Remote seek - Host %d", host);
     hvac_client_comm_gen_seek_rpc(host, fd, offset, whence);
-    bytes_read = hvac_seek_block();
-    L4C_INFO("bytes_lseek:%lld", bytes_read); 
-    return bytes_read;
+    bytes_lseek = hvac_seek_block();
+    L4C_INFO("bytes_lseek:%lld", bytes_lseek); 
+    return bytes_lseek;
   }
   /* Non-HVAC Reads come from base */
-  return bytes_read;
+  return bytes_lseek;
 }
+
 
 void hvac_remote_close(int fd)
 {
