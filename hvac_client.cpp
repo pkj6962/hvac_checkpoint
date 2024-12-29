@@ -31,6 +31,8 @@ char *hvac_checkpoint_dir = NULL;
 
 pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+
+std::map<int, off64_t> fd_to_offset;
 std::map<int, std::string> fd_map;
 std::map<int, int> fd_redir_map;
 // sy: add
@@ -244,6 +246,9 @@ bool hvac_track_file(const char *path, int flags, int fd)
     else if (is_read_mode)
     {
       host = hvac_extract_rank(fd_map[fd].c_str()) / hvac_client_per_node; 
+
+      //TODO: 클라이언트 사이드 fd_to_path 선언 및 할당 
+      fd_to_offset[fd] = 0; 
     }      
   
     L4C_INFO("Remote open - Host %d %s", host, path);
@@ -375,12 +380,18 @@ ssize_t hvac_remote_read(int fd, void *buf, size_t count)
     hvac_rpc_state_p->cond = &cond;
     hvac_rpc_state_p->mutex = &mutex;
 
-    hvac_client_comm_gen_read_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
+    // hvac_client_comm_gen_read_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);    
+    // TODO: Client-side checkpoint offset management: read 요청 pread로 전환요
+    hvac_client_comm_gen_read_rpc(host, fd, buf, count, fd_to_offset[fd], hvac_rpc_state_p); 
     bytes_read = hvac_read_block(host, &done, &bytes_read, &cond, &mutex);
     if (bytes_read == -1)
     {
       fd_map.erase(fd);
     }
+
+    // TODO: Client side Offset management 
+    fd_to_offset[fd] += bytes_read; 
+
   }
   /* Non-HVAC Reads come from base */
   return bytes_read;
@@ -453,6 +464,25 @@ ssize_t hvac_remote_lseek(int fd, off64_t offset, int whence)
     int host = client_rank / hvac_client_per_node;
 
 
+    // TODO: client 자료구조 선언 및 활용 
+    switch(whence)
+    {
+      case SEEK_SET: 
+        fd_to_offset[fd] = offset; break; 
+      case SEEK_CUR: 
+        fd_to_offset[fd] = fd_to_offset[fd] + offset; break; 
+      case SEEK_END:  
+        L4C_INFO("checkpoint manager - lseek: it reaches on SEEK_END case: Check if it is valid operation"); 
+        // fd_to_path 로 file_path 얻고 이로써 file_metadtaa 취할 수 있어 
+        // string file_path = fd_to_path[fd]; 
+        // auto & meta = file_metadata[file_path]; 
+        // fd_to_offset[fd] = meta.size + offset; 
+        // We should set offset in further write as much as not only bytes written but also offset increased this time.
+    }
+    L4C_INFO("lseek:  %lld %lld", offset, fd_to_offset[fd]);  // (파일:오프셋: (fd, offset, whence)
+    return fd_to_offset[fd];     
+
+
     // 자체 hvac_rpc_state_t 자료구조 선언
     // hvac_rpc_state_t_client *hvac_rpc_state_p = (hvac_rpc_state_t_client *)malloc(sizeof(hvac_rpc_state_t_client));
     // hvac_rpc_state_p->bytes_read = &bytes_read;
@@ -466,12 +496,13 @@ ssize_t hvac_remote_lseek(int fd, off64_t offset, int whence)
     // hvac_seek_block에 
     // bytes_lseek =  hvac_seek_block(host, &done, &bytes_lseek, &cond, &mutex); 
 
-
+    /*
     L4C_INFO("Remote seek - Host %d", host);
     hvac_client_comm_gen_seek_rpc(host, fd, offset, whence);
     bytes_lseek = hvac_seek_block();
     L4C_INFO("bytes_lseek:%lld", bytes_lseek); 
     return bytes_lseek;
+    */
   }
   /* Non-HVAC Reads come from base */
   return bytes_lseek;

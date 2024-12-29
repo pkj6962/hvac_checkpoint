@@ -427,8 +427,8 @@ hvac_rpc_handler(hg_handle_t handle)
     //체크포인트 읽기 요청 위한 별도의 핸들링 
     else if (hvac_rpc_state_p->in.accessfd <= -2)
     {
-
-      readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size); 
+      // Actually, this should never be reached. 
+      readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size,hvac_rpc_state_p->in.offset); 
       if (readbytes == -1)
       {
         L4C_INFO("Checkpoint file read error"); 
@@ -438,20 +438,37 @@ hvac_rpc_handler(hg_handle_t handle)
   }
   else
   {
-    readbytes = pread(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
-    L4C_INFO("Server Rank %d : PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.offset);
-    if (readbytes < 0)
-    { // sy: add
-      HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
-      free(hvac_rpc_state_p->buffer);
-      L4C_DEBUG("server read failed -1\n");
-      out.ret = -1; // Indicate failure
-      HG_Respond(handle, NULL, NULL, &out);
-      free(hvac_rpc_state_p);
-      return HG_SUCCESS;
-      //		}
+  
+    //fd가 
+    if (hvac_rpc_state_p->in.accessfd >= -1)
+    {
+
+      readbytes = pread(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
+      L4C_INFO("Server Rank %d : PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.offset);
+      if (readbytes < 0)
+      { // sy: add
+        HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
+        free(hvac_rpc_state_p->buffer);
+        L4C_DEBUG("server read failed -1\n");
+        out.ret = -1; // Indicate failure
+        HG_Respond(handle, NULL, NULL, &out);
+        free(hvac_rpc_state_p);
+        return HG_SUCCESS;
+        //		}
+      }
+    // TODO: Client-side checkpoint offset management
+    
     }
     // TODO: 필요시 checkpoint read를 위한 pread 로직 구축요 
+    // remote_fd가 -2 이하인 경우, checkpoint 읽기 요청 
+    else if (hvac_rpc_state_p->in.accessfd <= -2)
+    {
+      readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset); 
+      if (readbytes == -1)
+      {
+        L4C_INFO("Checkpoint file read error"); 
+      }
+    }
   }
 
   // Reduce size of transfer to what was actually read

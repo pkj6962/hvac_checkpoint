@@ -104,6 +104,7 @@ public:
   int open_checkpoint(const std::string &filename, int flag); 
 
   size_t read_checkpoint(int fd, void *buf, size_t count); 
+  size_t read_checkpoint(int fd, void *buf, size_t count, off64_t file_offset); 
   
   int close_checkpoint(int fd); 
 

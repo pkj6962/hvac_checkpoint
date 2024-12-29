@@ -146,7 +146,7 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
     global_fd -= 1; 
 
     fd_to_path[fd] = filename;
-    fd_to_offset[fd] = 0; 
+    // fd_to_offset[fd] = 0; 
 
     // 오픈 시도하는 파일에 대한 메타데이터 조사: 
     read_file_metadata(filename); 
@@ -159,7 +159,7 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
 
   return fd; 
 }
-
+/*
 size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
 {
     std::lock_guard<std::mutex> lock(mtx);
@@ -237,6 +237,86 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
 
     return readbytes; 
 }
+*/
+
+size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count, off64_t file_offset)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+
+    // Map the file descriptor to the corresponding file path and offset
+    if (fd_to_path.find(fd) == fd_to_path.end())
+    {
+        L4C_INFO("Invalid file descriptor: %d", fd);
+        exit(-1); 
+        // return;
+    }
+
+    const std::string &filename = fd_to_path[fd];
+    size_t offset = file_offset;
+
+    if (file_metadata.find(filename) == file_metadata.end())
+    {
+        L4C_INFO("File metadata not found for: %s", filename.c_str());
+        exit(-1); 
+        // return;
+    }
+
+    auto &meta = file_metadata[filename];
+    size_t remaining = count;
+    size_t readbytes = 0; 
+
+    // 체크포인트 요청 처리 핸들링 여부 로그 
+    L4C_INFO("checkpoint manager - read: %d %lld | %lld | %lld", fd, count, offset, meta.size); 
+
+
+ 
+    char *output_buf = static_cast<char *>(buf);
+    while (remaining > 0 && offset < meta.size)
+    {
+        // Determine the chunk index and position within the chunk
+        size_t chunk_index = offset / CHUNK_SIZE;
+        size_t chunk_offset = offset % CHUNK_SIZE;
+
+        if (chunk_index >= meta.chunk_indexes.size())
+        {
+            L4C_INFO("Invalid chunk index for offset: %zu", offset);
+            exit(-1); 
+            // return;
+        }
+
+        CheckpointChunk *chunk = get_current_chunk(meta.chunk_indexes[chunk_index]);
+
+        // Calculate how much data to read from this chunk
+        // 현재는 남은요구읽기량, 청크내남은량만 고려... 파일 전체 남은량(meta.size-offset) 고려 안돼   
+        // size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
+        // 청크내남은량, 파일내남은양을 하나의 변수로 취급: 
+        // size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
+        size_t to_read = std::min(remaining, chunk->offset - chunk_offset);
+        std::memcpy(output_buf, chunk->buffer.get() + chunk_offset, to_read);
+
+        // Update pointers and counters
+        output_buf += to_read;
+        remaining -= to_read;
+        offset += to_read;
+        // 파일 오프셋은 읽어나갈 수록 바뀌어나가 
+        // fd_to_offset[fd] += to_read; 
+        readbytes += to_read; 
+    }
+
+    if (remaining > 0)
+    {
+        L4C_INFO("Requested more data than available in checkpoint");
+    }
+
+    return readbytes; 
+}
+
+
+
+
+
+
+
 
 int CheckpointManager::close_checkpoint(int fd)
 {
@@ -254,6 +334,8 @@ int CheckpointManager::close_checkpoint(int fd)
   return 0; 
 }
 
+
+// TODO: This should be deprecated -This function will not be called for Client-side offset managmement.
 off64_t CheckpointManager::lseek_checkpoint(int fd, off64_t offset, int whence)
 {
   if (fd_to_offset.find(fd) == fd_to_offset.end())
