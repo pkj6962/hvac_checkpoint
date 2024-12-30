@@ -18,8 +18,10 @@ extern "C"
 #include <stdio.h>
 #include <sys/time.h>
 
+extern std::vector<long long> latencies; 
 // extern std::map<int, std::string> fd_map;
 using namespace std;
+
 
 /* struct used to carry state of overall operation across callbacks */
 struct hvac_rpc_state_t_client
@@ -91,8 +93,11 @@ MERCURY_GEN_PROC(hvac_open_out_t, ((int32_t)(ret_status)))
 MERCURY_GEN_PROC(hvac_open_in_t, ((hg_string_t)(path))((int32_t)(client_rank))((int32_t)(localfd))((int32_t)(flag)))
 
 // BULK Read Handler
-MERCURY_GEN_PROC(hvac_rpc_out_t, ((int32_t)(ret)))
-MERCURY_GEN_PROC(hvac_rpc_in_t, ((int32_t)(input_val))((hg_bulk_t)(bulk_handle))((int32_t)(accessfd))((int32_t)(localfd))((int64_t)(offset))((int32_t)(client_rank)))
+// Debug: Add time measurement value
+// MERCURY_GEN_PROC(hvac_rpc_out_t, ((int32_t)(ret)))
+MERCURY_GEN_PROC(hvac_rpc_out_t, ((int32_t)(ret))((int64_t)(start)))
+// MERCURY_GEN_PROC(hvac_rpc_in_t, ((int32_t)(input_val))((hg_bulk_t)(bulk_handle))((int32_t)(accessfd))((int32_t)(localfd))((int64_t)(offset))((int32_t)(client_rank)))
+MERCURY_GEN_PROC(hvac_rpc_in_t, ((int32_t)(input_val))((hg_bulk_t)(bulk_handle))((int32_t)(accessfd))((int32_t)(localfd))((int64_t)(offset))((int32_t)(client_rank))((int64_t)(start)))
 
 // BULK write Handler
 MERCURY_GEN_PROC(hvac_write_out_t, ((int32_t)(ret)))

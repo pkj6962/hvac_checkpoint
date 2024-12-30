@@ -3,6 +3,9 @@
 #include <iostream>
 #include <map>
 #include <thread>
+// For logging 
+#include <chrono> 
+#include <numeric>
 
 #include "hvac_comm.h"
 #include "hvac_data_mover_internal.h"
@@ -43,6 +46,7 @@ std::mutex timeout_mutex;
 hg_addr_t my_address = HG_ADDR_NULL;
 char client_address[128];
 int client_rank;
+// vector <long long> latencies; 
 
 static hg_return_t
 hvac_seek_cb(const struct hg_cb_info *info)
@@ -217,11 +221,16 @@ hvac_read_cb(const struct hg_cb_info *info)
       {
         L4C_INFO("Server-side read failed with result: %zd", out.ret);
       }
+      
+      // Debug: RPC 회신 후 clock() 시간 측정 및 latency & 누적합 계산
+      //  start time 역직렬화 
+      auto start = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(out.start));
+      auto end = std::chrono::high_resolution_clock::now(); 
+      auto latency = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+      latencies.push_back(latency.count()); 
+         
       ret = HG_Free_output(info->info.forward.handle, &out);
-      //			ret = HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
-      //			ret = HG_Destroy(info->info.forward.handle);
-      //			free(hvac_rpc_state_p);
-      //			return HG_FAULT;
+      
       assert(ret == HG_SUCCESS);
     }
   }
@@ -413,6 +422,16 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
   HG_Destroy(handle);
   hvac_comm_free_addr(svr_addr);
 
+  // Debug: latency measure 
+  // latency 누적합 계산 
+  long long total_latencies = std::accumulate(latencies.begin(), latencies.end(), 0LL); 
+  // fd, 요청 개수, 요청 총합(ms), 
+  L4C_INFO("close:\nfd:%d\ncount:%d\nlatencies:%lld ms", fd, latencies.size(), total_latencies);
+  for (auto latency: latencies)
+  {
+    printf("%lld\t", latency); 
+  }  
+
   return;
 }
 
@@ -565,6 +584,14 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   in.client_rank = client_rank;          // sy: add - for logging
   hvac_rpc_state_p->svr_hash = svr_hash; // sy: add
 
+
+  // Debug: RPC 전송 전 clock() 시간 측정 
+  auto start = std::chrono::high_resolution_clock::now();   
+  // 데이터 직렬화 
+  auto duration = start.time_since_epoch(); 
+  long long serializedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count(); 
+  in.start = serializedTime; 
+  
   ret = HG_Forward(hvac_rpc_state_p->handle, hvac_read_cb, hvac_rpc_state_p, &in);
   assert(ret == 0);
 

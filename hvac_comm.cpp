@@ -14,6 +14,7 @@ extern "C"
 #include <string>
 #include <iostream>
 #include <map>
+#include <numeric> 
 
 static hg_class_t *hg_class = NULL;
 static hg_context_t *hg_context = NULL;
@@ -24,6 +25,9 @@ static string hvac_data_dir;
 static string hvac_checkpoint_dir;
 
 char server_addr_str[128];
+
+vector <long long> latencies;
+
 
 CheckpointManager checkpoint_manager;
 
@@ -291,6 +295,9 @@ hvac_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   //	L4C_INFO("out.ret server %d\n", out.ret);
   //    assert(info->ret == 0);
 
+  // Debug: Return client side start time back to client.  
+  out.start = hvac_rpc_state_p->in.start; 
+
   if (info->ret != 0)
   {
     L4C_DEBUG("Callback info contains an error: %d\n", info->ret);
@@ -380,6 +387,11 @@ hvac_rpc_handler(hg_handle_t handle)
   log_info_t log_info;
   struct timeval tmp_time;
 
+  // Debug: Measure Server-side handlling time 
+  auto start = chrono::high_resolution_clock::now(); 
+
+
+
   hvac_rpc_state_p = (struct hvac_rpc_state *)malloc(sizeof(*hvac_rpc_state_p));
 
   /* decode input */
@@ -438,8 +450,6 @@ hvac_rpc_handler(hg_handle_t handle)
   }
   else
   {
-  
-    //fd가 
     if (hvac_rpc_state_p->in.accessfd >= -1)
     {
 
@@ -454,7 +464,6 @@ hvac_rpc_handler(hg_handle_t handle)
         HG_Respond(handle, NULL, NULL, &out);
         free(hvac_rpc_state_p);
         return HG_SUCCESS;
-        //		}
       }
     // TODO: Client-side checkpoint offset management
     
@@ -476,6 +485,14 @@ hvac_rpc_handler(hg_handle_t handle)
   hvac_rpc_state_p->size = readbytes;
   //	L4C_DEBUG("readbytes before transfer %d\n", readbytes);
   /* initiate bulk transfer from client to server */
+  
+  // Debug: 클라이언트 측 시작 시간 out 값으로 리다이렉트... 
+  out.start = hvac_rpc_state_p->in.start; 
+  // Bulk transfer로는 out이 전달안되는 것일 수 있어... hvac_rpc_state_p에 전달해야 
+  // hvac_rpc_state_p->start_time = start_time 
+  
+  
+  
   ret = HG_Bulk_transfer(hgi->context, hvac_rpc_handler_bulk_cb, hvac_rpc_state_p,
                          HG_BULK_PUSH, hgi->addr, hvac_rpc_state_p->in.bulk_handle, 0,
                          hvac_rpc_state_p->bulk_handle, 0, hvac_rpc_state_p->size, HG_OP_ID_IGNORE);
@@ -483,6 +500,12 @@ hvac_rpc_handler(hg_handle_t handle)
   assert(ret == 0);
 
   (void)ret;
+
+  // Debug: Measure Server side request handle time
+  auto end = chrono::high_resolution_clock::now();
+  auto latency = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  latencies.push_back(latency.count()); 
+  
 
   return (hg_return_t)ret;
 }
@@ -643,9 +666,13 @@ hvac_close_rpc_handler(hg_handle_t handle)
   if (in.fd >= 0)
     ret = close(in.fd);
   else if (in.fd <= -2)
+  {
     ret = checkpoint_manager.close_checkpoint(in.fd); 
-  //
-  
+    // Debug: Measure Server-side handling
+    long long total_latency = std::accumulate(latencies.begin(), latencies.end(), 0LL); 
+    L4C_INFO("Server-side handle time: %lld", total_latency);
+  }
+
   assert(ret == 0);
   //	out.done = ret;
   // sy: add - logging code

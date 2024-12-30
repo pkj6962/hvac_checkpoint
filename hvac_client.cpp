@@ -236,6 +236,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     // 디버깅 목적으로 임시로 mpi_rank로 클라이언트 랭크 판단 
     int current_host = atoi(getenv("PMI_RANK"));
+    // int current_host = atoi(getenv("RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
     
 
@@ -282,6 +283,7 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     // Generate the write RPC request.
     // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     int current_host = atoi(getenv("PMI_RANK"));
+    // int current_host = atoi(getenv("RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
     
     int host = current_host / hvac_client_per_node; 
@@ -314,7 +316,7 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 //   if (hvac_file_tracked(fd))
 //   {
 //     // TODO: It should be changed so that the client sends requests to the local server.
-//     // Determine which server to communicate with based on the file descriptor.
+//     // Determine which server to communicate vi with based on the file descriptor.
 
 //     const char *rank_str = getenv("PMI_RANK");
 //     const char *world_size_str = getenv("SLURM_NTASKS");
@@ -389,7 +391,7 @@ ssize_t hvac_remote_read(int fd, void *buf, size_t count)
       fd_map.erase(fd);
     }
 
-    // TODO: Client side Offset management 
+    // JH: Client side Offset management 
     fd_to_offset[fd] += bytes_read; 
 
   }

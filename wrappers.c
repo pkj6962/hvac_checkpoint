@@ -280,8 +280,7 @@ ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
 
 	const char *path = hvac_get_path(fd);
 	if (path)
-	{
-		
+	{	
 		L4C_INFO("Read64 to file %s of size %ld",path,count);
 	}
 	L4C_INFO("read64 - path: %s", path); 
@@ -339,16 +338,15 @@ off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
 	int flag = fcntl(fd, F_GETFL); 
 	int access_mode = flag & O_ACCMODE; 
 
-	// offset==0, whence==SEEK_CUR 제외한 요청은 특별히 로그
+	// Debug: offset==0, whence==SEEK_CUR 제외한 요청은 특별히 로그
 	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
 	{
-		// 번호와 심볼 매핑 필요 
-		const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
-		L4C_INFO("lseek: %d %d %s", fd, offset, str);
+		// const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
+		// L4C_INFO("lseek: %d %d %s", fd, offset, str);
 	}
 	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
 	{
-		L4C_INFO("Got an LSEEK on a tracked file %d %lld %d", fd, offset, whence);	
+		// L4C_INFO("Got an LSEEK on a tracked file %d %lld %d", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
 	return __real_lseek(fd, offset, whence);
@@ -361,14 +359,14 @@ off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
 
 	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
 	{
-		const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
-		L4C_INFO("lseek64: %d %lld %s", fd, offset, str);
+		// const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
+		// L4C_INFO("lseek64: %d %lld %s", fd, offset, str);
 	}
 	int flag = fcntl(fd, F_GETFL); 
 	int access_mode = flag & O_ACCMODE; 
 	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
 	{
-		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d", fd, offset, whence);	
+		// L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
 	return __real_lseek64(fd, offset, whence);

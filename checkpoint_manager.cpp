@@ -1,5 +1,8 @@
 #include "checkpoint_manager.h"
 #include "hvac_comm.h"
+
+#include <numeric>
+
 extern "C"
 {
 #include "hvac_logging.h"
@@ -11,6 +14,8 @@ extern "C"
 // Moved its definition into hvac_comm.cpp to avoid undefined symbol error in client side. 
 // CheckpointManager checkpoint_manager;
 
+
+vector<long long> read_latencies; 
 
 // int server_count = atoi(getenv("HVAC_SERVER_COUNT"));
 CheckpointChunk::CheckpointChunk()
@@ -42,7 +47,7 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
   const char *data = static_cast<const char *>(buf);
   size_t remaining = count;
 
-  // std::lock_guard<std::mutex> lock(mtx); // Ensure thread safety
+  std::lock_guard<std::mutex> lock(mtx); // Ensure thread safety
 
   auto &meta = file_metadata[filename];
   size_t &current_chunk_index = current_file_chunk_index[filename];
@@ -50,7 +55,10 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
   // Initialize file metadata if this is the first write
   if (meta.chunk_indexes.empty())
   {
-    L4C_INFO("Checkpoint manager: New file metadata is created for %s", filename.c_str()); 
+    L4C_INFO("Checkpoint manager: New file metadata is created for %s: %lld", filename.c_str(), global_chunk_index); 
+    // Needed logic for multi-client environment, maybe.
+    allocate_new_chunk();
+
     current_chunk_index = global_chunk_index;
     meta.chunk_indexes.push_back(global_chunk_index);
   }
@@ -241,7 +249,11 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count)
 
 size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count, off64_t file_offset)
 {
-    std::lock_guard<std::mutex> lock(mtx);
+    // std::lock_guard<std::mutex> lock(mtx);
+
+
+    auto start = chrono::high_resolution_clock::now();
+
 
     // Map the file descriptor to the corresponding file path and offset
     if (fd_to_path.find(fd) == fd_to_path.end())
@@ -292,7 +304,10 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count, off64
         // 청크내남은량, 파일내남은양을 하나의 변수로 취급: 
         // size_t to_read = std::min(remaining, CHUNK_SIZE - chunk_offset);
         size_t to_read = std::min(remaining, chunk->offset - chunk_offset);
+        // chunk->offset: chunk내 현재까지 써진 위치 / cnunk_offset: chunk내 현재 요청받은 위치  값 조사
+        L4C_INFO("%lld %lld %lld", remaining, chunk->offset, chunk_offset);
         std::memcpy(output_buf, chunk->buffer.get() + chunk_offset, to_read);
+
 
         // Update pointers and counters
         output_buf += to_read;
@@ -307,6 +322,10 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count, off64
     {
         L4C_INFO("Requested more data than available in checkpoint");
     }
+    auto end = chrono::high_resolution_clock::now();
+    auto latency = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    read_latencies.push_back(latency.count()); 
+  
 
     return readbytes; 
 }
@@ -329,7 +348,9 @@ int CheckpointManager::close_checkpoint(int fd)
 
   // 마지막으로 읽은 시점의 offset 조사
   L4C_INFO("checkpoint manager - close: %s %lld", fd_to_path[fd].c_str(), fd_to_offset[fd]); 
-
+  long long total_latencies = std::accumulate(read_latencies.begin(), read_latencies.end(), 0LL); 
+  // fd, 요청 개수, 요청 총합(ms), 
+  L4C_INFO("close:\nfd:%d\ncount:%d\nlatencies:%lld ms", fd, read_latencies.size(), total_latencies);
 
   return 0; 
 }
