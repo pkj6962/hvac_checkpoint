@@ -7,6 +7,9 @@
 #include <vector>
 #include <mutex>
 #include <cstring>
+#include <condition_variable>
+#include <queue>
+#include <thread>
 
 // Define the size of each data chunk
 // Debug: 청크 크기에 따른 성능 조사
@@ -46,12 +49,17 @@ private:
   std::unordered_map<std::string, size_t> current_file_chunk_index; ///< Current chunk index for each file.
   std::unordered_map<int32_t, std::string> fd_to_path;
   std::unordered_map<int32_t, off64_t> fd_to_offset;
+  std::vector<std::unique_ptr<CheckpointChunk>> chunks;
+  std::mutex mtx;
+  std::queue<std::pair<std::string, std::vector<char>>> data_queue;
+  std::mutex queue_mutex;
+  std::condition_variable cv;
+  std::thread worker_thread;
+  bool stop_worker = false;
 
-  std::vector<std::unique_ptr<CheckpointChunk>> chunks;             ///< Collection of all chunks.
-  std::mutex mtx;                                                   ///< Mutex for thread-safety.
-  size_t global_chunk_index = 0;                                    ///< Global index for current chunk.
+  size_t global_chunk_index = 0; ///< Global index for current chunk.
 
-  int32_t global_fd = -2;                                           ///< Global file descriptor for current file open
+  int32_t global_fd = -2; ///< Global file descriptor for current file open
 
   /**
    * @brief Retrieves the current chunk or allocates a new one if the index exceeds existing chunks.
@@ -74,11 +82,14 @@ private:
    */
   void send_chunk_to_remote(const std::string &filename, const char *data, size_t size, int local_fd);
 
+  void background_worker(); ///< Background thread function to process writes.
+
 public:
   /**
    * @brief Constructor initializes the manager and creates the first chunk.
    */
   CheckpointManager();
+  ~CheckpointManager(); ///< Destructor to stop the background worker.
 
   /**
    * @brief Writes data into chunks, splitting it across multiple chunks if necessary.
@@ -97,20 +108,18 @@ public:
   void finalize_file_write(const std::string &filename, int local_fd);
 
   // JH add
-  void read_file_metadata(const std::string &filename); 
-
+  void read_file_metadata(const std::string &filename);
 
   // DRAM 체크포인트 파일 오프너
-  int open_checkpoint(const std::string &filename, int flag); 
+  int open_checkpoint(const std::string &filename, int flag);
 
-  size_t read_checkpoint(int fd, void *buf, size_t count); 
-  size_t read_checkpoint(int fd, void *buf, size_t count, off64_t file_offset); 
-  
-  int close_checkpoint(int fd); 
+  size_t read_checkpoint(int fd, void *buf, size_t count);
+  size_t read_checkpoint(int fd, void *buf, size_t count, off64_t file_offset);
 
-  off_t lseek_checkpoint(int fd, off64_t offset, int whence); 
+  int close_checkpoint(int fd);
 
-
+  off_t lseek_checkpoint(int fd, off64_t offset, int whence);
 };
+
 extern CheckpointManager checkpoint_manager;
 #endif
