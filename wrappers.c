@@ -151,6 +151,25 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 
 
 
+/*
+
+<PGT on HVAC> 
+- Client should pass to server the CLOCK TIME 
+on its open request for the checkpoint file 
+- hvac_rpc_state 등 자료구조에 실을 수 있어 
+- hvac_flush_fn 에서 close가 최종적으로 처리될 때 CLOCK TIME의 차이로 
+쓰기 완료되는 시간 비교 가능  
+
+<PGT on PFS> 
+- Comment out all functions in wrappers: 
+- Only maintain wrapper in Open64: When checkpoint file was tracked on the wrappers,
+Track the CLOCK TIME. 
+- On the close function for the checkpoint file, Track the CLOCK TIME again.
+
+*/
+
+
+
 int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 {
 	int ret = 0;
@@ -160,9 +179,6 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 
 	struct timeval start, end; 
 	gettimeofday(&start, NULL); 
-
-
-
 
 	if (flags & O_CREAT)
 	{

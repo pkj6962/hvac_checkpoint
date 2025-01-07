@@ -28,12 +28,18 @@ int hvac_start_comm_server(void)
 
     /* Start the data mover before anything else */
     pthread_t hvac_data_mover_tid;
+    pthread_t hvac_flush_tid; 
    
     if (pthread_create(&hvac_data_mover_tid, NULL, hvac_data_mover_fn, NULL) != 0){
 		L4C_FATAL("Failed to initialized mecury progress thread\n");
 	}
-   
-   
+
+    // Create PFS FLush thread on initialiation of hvac server. 
+    if (pthread_create(&hvac_flush_tid, NULL, hvac_flush_fn, NULL) != 0) 
+    {
+        L4C_FATAL ("Failed to initialize background pfs flush thread"); 
+    }
+    
     /* True means we're a listener */
     hvac_init_comm(true);
 

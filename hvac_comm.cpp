@@ -30,6 +30,10 @@ vector <long long> latencies;
 
 
 CheckpointManager checkpoint_manager;
+struct flush_entry flush_entry; 
+
+// Debug: 체크포인트 시작 시간 로그 
+int64_t start_time; 
 
 /* struct used to carry state of overall operation across callbacks */
 struct hvac_rpc_state
@@ -367,23 +371,35 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 
 
   // TOOD: PFS Flush Thread
-  /*
-  filepath, buffer, size,   
-  */
+  struct flush_entry entry = {
+    .op = WRITE_OP, 
+    .fd = access_fd, 
+    .buf = hvac_rpc_state_p->buffer, 
+    .size = hvac_rpc_state_p->size, 
+  }; 
 
+  // flush_queue에 삽입 
+  // 삽입 전후 뮤텍스 lock 및 signal 전송 
+
+  pthread_mutex_lock(&flush_mutex);
+  flush_queue.push(entry);
+  pthread_cond_signal(&flush_cond); 
+  pthread_mutex_unlock(&flush_mutex);
+  L4C_INFO("fd %d was inserted into flush queue(size: %lld)", access_fd, hvac_rpc_state_p->size); 
+
+  
 
 
   // checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
-  // Debug: 인메모리 체크포인트 쓰기 오버헤드 조사
   // TODO: 체크포인트 매니저 - 백그라운드 쓰레드로 전환
-  checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
+  // checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
   // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
   // L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
 
 
   // TODO: Comment Out - PFS FLush Thread에서 해제
-  free(hvac_rpc_state_p->buffer);
+  // free(hvac_rpc_state_p->buffer);
   free(hvac_rpc_state_p);
   return HG_SUCCESS;
 }
@@ -618,6 +634,11 @@ hvac_open_rpc_handler(hg_handle_t handle)
         pthread_mutex_unlock(&path_map_mutex);
         out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
         L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
+
+        //Debug: Save Start time somewhere
+
+        start_time = in.start; 
+
       }
     
       // 체크포인트 복구 모드
@@ -669,6 +690,7 @@ hvac_close_rpc_handler(hg_handle_t handle)
   if ((flags & O_ACCMODE) == O_WRONLY)
   {
     string filename = fd_to_path[in.fd]; 
+
     L4C_INFO("close: %s %d", filename.c_str(), in.fd); 
     checkpoint_manager.read_file_metadata(filename); 
   }
@@ -676,8 +698,18 @@ hvac_close_rpc_handler(hg_handle_t handle)
   L4C_INFO("Closing File %d\n", in.fd);
   if (in.fd >= 0)
   {
-    ret = close(in.fd);
+    // Close was moved to be called on background thread.
+    // ret = close(in.fd);
 
+    // TOOD: PFS Flush Thread
+    struct flush_entry entry = {
+      .op = CLOSE_OP, 
+      .fd = in.fd, 
+    }; 
+    // flush_queue에 삽입 
+    flush_queue.push(entry);
+    L4C_INFO("fd %d was pushed to flush queue on close operation %d", entry.fd, entry.op); 
+    
     // Debug: It should be removed; called for debugging 
     ret = checkpoint_manager.close_checkpoint(in.fd); 
     L4C_INFO("close return: %d %d", ret, errno);

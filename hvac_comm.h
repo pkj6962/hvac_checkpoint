@@ -90,7 +90,7 @@ extern int client_rank;
 
 // RPC Open Handler
 MERCURY_GEN_PROC(hvac_open_out_t, ((int32_t)(ret_status)))
-MERCURY_GEN_PROC(hvac_open_in_t, ((hg_string_t)(path))((int32_t)(client_rank))((int32_t)(localfd))((int32_t)(flag)))
+MERCURY_GEN_PROC(hvac_open_in_t, ((hg_string_t)(path))((int32_t)(client_rank))((int32_t)(localfd))((int32_t)(flag))((int64_t)(start)))
 
 // BULK Read Handler
 // Debug: Add time measurement value

@@ -369,11 +369,6 @@ size_t CheckpointManager::read_checkpoint(int fd, void *buf, size_t count, off64
 
 
 
-
-
-
-
-
 int CheckpointManager::close_checkpoint(int fd)
 {
   if (fd_to_path.find(fd) == fd_to_path.end())

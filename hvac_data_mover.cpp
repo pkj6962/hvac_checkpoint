@@ -11,6 +11,9 @@
 #include <cerrno>
 #include <cstring>
 
+#include <unistd.h> 
+
+
 #include "hvac_logging.h"
 #include "hvac_data_mover_internal.h"
 
@@ -21,10 +24,33 @@ pthread_cond_t data_cond = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t path_map_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+pthread_mutex_t flush_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t flush_cond =  PTHREAD_COND_INITIALIZER;
+
 map<int, string> fd_to_path;
 map<string, string> path_cache_map;
 queue<string> data_queue;
 string WRITE_PREFIX = "HVAC_WRITE_PREFIX:";
+
+queue <struct flush_entry> flush_queue; 
+extern struct flush_entry flush_entry; 
+// struct flush_entry
+// {
+//   int op;         // open, write, close --> 
+//   int fd;         // filename or GlobalFD
+//   void * buf; 
+//   uint64_t size; 
+//   uint64_t offset;
+// }flush_entry; 
+
+// queue <struct flush_entry> flush_queue; // hvac_data_mover.cpp 및 hvac_comm.cpp (bulk_write_cb)와 공유
+  
+
+
+
+
+
+
 
 void *hvac_data_mover_fn(void *args)
 {
@@ -103,52 +129,62 @@ void *hvac_data_mover_fn(void *args)
 }
 
 
-/*
-struct 
+
+
+
+
+void* hvac_flush_fn(void *args)
 {
-  int op; // open, write, close --> 
-  int fd; filename or GlobalFD
-  char * buffer; 
-  uint64_t size; 
-  uint64_t offset;
-}
 
-
-*/
-
-void hvac_pfs_flush_fn
-{
-  /*
-  
-  if (op == OPEN)
+  queue <struct flush_entry> local_list;  
+  while (true)
   {
-      open FILENAME // 
-  }
-  else if (op == WRITE)
-  {
-      bytes_written = pwrite(fd, buf, size, offset); 
+    pthread_mutex_lock(&flush_mutex);     
+    while (flush_queue.empty())
+    {
+        pthread_cond_wait(&flush_cond, &flush_mutex); 
+    }
 
-      // HG 관련 자료구조 해제 필요... 안그러러면 메인 루틴에서 해제해 동기화 문제 발생
+    while(!flush_queue.empty())
+    {
+      local_list.push(flush_queue.front());
+      flush_queue.pop(); 
+    }
 
-      check error
-  }
+    pthread_mutex_unlock(&flush_mutex); 
 
-  else // op == CLOSE 
-  {
-    close(fd);
+    while (!local_list.empty())
+    {
+        struct flush_entry entry = local_list.front();
+        local_list.pop(); 
 
-    // Timer install
+        L4C_INFO("PFS Flusher: %d %d %lld", entry.op, entry.fd, entry.size); 
 
-    L4C_INFO("", time) 
-    // Persistence Guarantee Time 측정 방식 고려 필요: 
+        if (entry.op == CLOSE_OP)
+        {
+          close(entry.fd); 
 
+          // Debug: RPC 전송 전 clock() 시간 측정 
+          auto end = std::chrono::high_resolution_clock::now();   
+          auto deserializedStart = std::chrono::high_resolution_clock::time_point(std::chrono::nanoseconds(start_time)); 
+          auto latency = std::chrono::duration_cast<std::chrono::microseconds>(end-deserializedStart);  
+          auto duration = latency.count(); 
+          L4C_INFO("Flush duration: %lld", duration); 
 
+          continue;
+        }
+        
+        // Logic for Checkpoint write 
+        ssize_t bytes_written = write(entry.fd, entry.buf, entry.size); 
+        if (bytes_written == -1)
+        {
+          L4C_FATAL("write failed on pfs flush function"); 
+        }
+        else
+        {          
+          // free(entry.buf); 
+        }
+    }
   }
   
-  
-  
-  */
-
-
-
 }
