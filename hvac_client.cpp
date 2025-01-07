@@ -235,8 +235,8 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     // 디버깅 목적으로 임시로 mpi_rank로 클라이언트 랭크 판단 
-    int current_host = atoi(getenv("PMI_RANK"));
-    // int current_host = atoi(getenv("RANK"));
+    // int current_host = atoi(getenv("PMI_RANK"));
+    int current_host = atoi(getenv("RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
     
 
@@ -252,7 +252,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
       fd_to_offset[fd] = 0; 
     }      
   
-    L4C_INFO("Remote open - Host %d %s", host, path);
+    L4C_INFO("Remote open - Host %d %s %d %d (rank: %d)", host, path, is_write_mode, is_read_mode, current_host );
     hvac_client_comm_gen_open_rpc(host, fd_map[fd], fd, hvac_open_state_p);
     hvac_client_block(host, &done, &cond, &mutex);
   }
@@ -282,8 +282,8 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 
     // Generate the write RPC request.
     // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
-    int current_host = atoi(getenv("PMI_RANK"));
-    // int current_host = atoi(getenv("RANK"));
+    // int current_host = atoi(getenv("PMI_RANK"));
+    int current_host = atoi(getenv("RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
     
     int host = current_host / hvac_client_per_node; 
@@ -521,6 +521,11 @@ void hvac_remote_close(int fd)
   {
     
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    int current_host = atoi(getenv("RANK"));
+    // int current_host = atoi(getenv("MPI_RANK"));
+    host = hvac_extract_rank(fd_map[fd].c_str()) / hvac_client_per_node;       
+
+
     // TODO: 체크포인트 쓰기 모드 시 별도의 close rpc 불필요 
     // 체크포인트 쓰기시에도 일단 유지... 디버그 목적
     hvac_rpc_state_t_close *rpc_state = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));

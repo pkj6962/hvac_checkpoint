@@ -592,7 +592,11 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   long long serializedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count(); 
   in.start = serializedTime; 
   
+
+  // 서버로 잘 송신됐는지 로그 
+  L4C_INFO("a1"); 
   ret = HG_Forward(hvac_rpc_state_p->handle, hvac_read_cb, hvac_rpc_state_p, &in);
+  L4C_INFO("a2");
   assert(ret == 0);
 
   hvac_comm_free_addr(svr_addr);

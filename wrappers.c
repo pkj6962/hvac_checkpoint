@@ -21,6 +21,7 @@
 #include <assert.h>
 
 // sy: add for debugging purpose
+#include <sys/time.h> 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +46,7 @@ extern bool g_disable_redirect;
 // to make sure I/O to our log files doesn't get redirected.
 extern __thread bool tl_disable_redirect;
 
+static long write_latencies = 0; 
 
 
 /* fopen wrapper */
@@ -95,6 +97,9 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	int mode = 0;
 	int use_mode = 0; //sy: add // you can revert this change
 
+	struct timeval start, end; 
+	gettimeofday(&start, NULL); 
+
 	if (flags & O_CREAT)
 	{
 		va_start(ap, flags);
@@ -121,16 +126,26 @@ int WRAP_DECL(open)(const char *pathname, int flags, ...)
 	ret = __real_open(pathname, flags, mode); //original code
 	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
 
+
 	// C++ code determines whether to track
 	if (ret != -1){
 		if (hvac_track_file(pathname, flags, ret))
 		{
 			L4C_INFO("Open: Tracking file %s",pathname);
+			gettimeofday(&end, NULL); 
+			// Debug: 시간 차이 계산 (microsecond 단위)
+			long seconds = end.tv_sec - start.tv_sec;
+			long microseconds = end.tv_usec - start.tv_usec;
+			long total_microseconds = seconds * 1000000 + microseconds;
+			L4C_INFO("Open latency: %lld", total_microseconds); 
 		}
 		else{
             //L4C_INFO("Tracking %s failed", pathname); 
 		}
 	}
+
+
+
 	return ret;
 }
 
@@ -143,6 +158,12 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 	int mode = 0;
 	int use_mode = 0; //sy: add // you can revert this change
 
+	struct timeval start, end; 
+	gettimeofday(&start, NULL); 
+
+
+
+
 	if (flags & O_CREAT)
 	{
 		va_start(ap, flags);
@@ -160,7 +181,7 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 			return __real_open(pathname, flags, mode);
 		}
 	}
-
+	
 	/* For now pass the open to GPFS  - I think the open is cheap
 	 * possibly asychronous.
 	 * If this impedes performance we can investigate a cheap way of generating
@@ -174,6 +195,13 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 		if (hvac_track_file(pathname, flags, ret))
 		{
 			L4C_INFO("Open: Tracking file %s",pathname);
+			
+			gettimeofday(&end, NULL); 
+			// Debug: 시간 차이 계산 (microsecond 단위)
+			long seconds = end.tv_sec - start.tv_sec;
+			long microseconds = end.tv_usec - start.tv_usec;
+			long total_microseconds = seconds * 1000000 + microseconds;
+			L4C_INFO("Open latency: %lld", total_microseconds); 
 		}
 		else{
             //L4C_INFO("Tracking %s failed", pathname); 
@@ -188,6 +216,8 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 int WRAP_DECL(close)(int fd)
 {
 	int ret = 0;
+	struct timeval start, end; 
+	gettimeofday(&start, NULL); 
 
 	/* Check if hvac data has been initialized? Can we possibly hit a close call before an open call? */
 	MAP_OR_FAIL(close);
@@ -198,6 +228,17 @@ int WRAP_DECL(close)(int fd)
 	{
 		L4C_INFO("Close to file %s",path);
 		hvac_remove_fd(fd);
+
+		// Debug
+		L4C_INFO("Elapsed time\t%ld microseconds for %s\n", write_latencies, hvac_get_path(fd));
+
+
+		gettimeofday(&end, NULL); 
+		// Debug: 시간 차이 계산 (microsecond 단위)
+		long seconds = end.tv_sec - start.tv_sec;
+		long microseconds = end.tv_usec - start.tv_usec;
+		long total_microseconds = seconds * 1000000 + microseconds;
+		L4C_INFO("Close latency: %lld", total_microseconds);
 	}
 	//L4C_INFO("Close - path: %s", path); 
 
@@ -207,6 +248,7 @@ int WRAP_DECL(close)(int fd)
 		L4C_PERROR("Error from close");
 		return ret;
 	}
+ 
 
 	return ret;
 }
@@ -309,10 +351,13 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 }
 */
 
-
 ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
 {
     MAP_OR_FAIL(write);  // Resolves the real `write` function.
+
+	struct timeval start, end; 
+
+	gettimeofday(&start, NULL); 
 
     const char *path = hvac_get_path(fd);
     if (path) {
@@ -320,6 +365,13 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
         ssize_t cached_write = hvac_cache_write(fd, buf, count);
         if (cached_write > 0) {
 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
+			gettimeofday(&end, NULL); 
+			// Debug: 시간 차이 계산 (microsecond 단위)
+			long seconds = end.tv_sec - start.tv_sec;
+			long microseconds = end.tv_usec - start.tv_usec;
+			long total_microseconds = seconds * 1000000 + microseconds;
+			write_latencies += total_microseconds; 
+
             return cached_write;  // Successfully written to cache
         }
     }
@@ -349,6 +401,8 @@ off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
 		// L4C_INFO("Got an LSEEK on a tracked file %d %lld %d", fd, offset, whence);	
 		return hvac_remote_lseek(fd,offset,whence);
 	}
+
+
 	return __real_lseek(fd, offset, whence);
 }
 

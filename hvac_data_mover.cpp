@@ -101,3 +101,54 @@ void *hvac_data_mover_fn(void *args)
   }
   return NULL;
 }
+
+
+/*
+struct 
+{
+  int op; // open, write, close --> 
+  int fd; filename or GlobalFD
+  char * buffer; 
+  uint64_t size; 
+  uint64_t offset;
+}
+
+
+*/
+
+void hvac_pfs_flush_fn
+{
+  /*
+  
+  if (op == OPEN)
+  {
+      open FILENAME // 
+  }
+  else if (op == WRITE)
+  {
+      bytes_written = pwrite(fd, buf, size, offset); 
+
+      // HG 관련 자료구조 해제 필요... 안그러러면 메인 루틴에서 해제해 동기화 문제 발생
+
+      check error
+  }
+
+  else // op == CLOSE 
+  {
+    close(fd);
+
+    // Timer install
+
+    L4C_INFO("", time) 
+    // Persistence Guarantee Time 측정 방식 고려 필요: 
+
+
+  }
+  
+  
+  
+  */
+
+
+
+}

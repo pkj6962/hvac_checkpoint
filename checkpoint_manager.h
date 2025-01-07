@@ -10,7 +10,7 @@
 
 // Define the size of each data chunk
 // Debug: 청크 크기에 따른 성능 조사
-#define CHUNK_SIZE (1L * 8200 * 1024 * 1024) ///< Chunk size is 24 MB
+#define CHUNK_SIZE (1L * 4000 * 1024 * 1024) ///< Chunk size is 24 MB
 
 /**
  * @brief Metadata structure to track file size and associated chunk indices.

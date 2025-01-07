@@ -365,13 +365,24 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   int access_fd = hvac_rpc_state_p->in.accessfd;
   ssize_t writebytes = -1;
 
+
+  // TOOD: PFS Flush Thread
+  /*
+  filepath, buffer, size,   
+  */
+
+
+
   // checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
   // Debug: 인메모리 체크포인트 쓰기 오버헤드 조사
+  // TODO: 체크포인트 매니저 - 백그라운드 쓰레드로 전환
   checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
   // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
   // L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
 
+
+  // TODO: Comment Out - PFS FLush Thread에서 해제
   free(hvac_rpc_state_p->buffer);
   free(hvac_rpc_state_p);
   return HG_SUCCESS;
@@ -664,7 +675,13 @@ hvac_close_rpc_handler(hg_handle_t handle)
 
   L4C_INFO("Closing File %d\n", in.fd);
   if (in.fd >= 0)
+  {
     ret = close(in.fd);
+
+    // Debug: It should be removed; called for debugging 
+    ret = checkpoint_manager.close_checkpoint(in.fd); 
+    L4C_INFO("close return: %d %d", ret, errno);
+  }
   else if (in.fd <= -2)
   {
     ret = checkpoint_manager.close_checkpoint(in.fd); 
@@ -692,8 +709,9 @@ hvac_close_rpc_handler(hg_handle_t handle)
   if ((flags & O_ACCMODE) == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
   {
     pthread_mutex_lock(&data_mutex);
-    
+
     data_queue.push(fd_to_path[in.fd]);
+
     pthread_cond_signal(&data_cond);
     pthread_mutex_unlock(&data_mutex);
     nvme_flag = 1;
