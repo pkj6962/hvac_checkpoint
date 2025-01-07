@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdarg.h>
+#include <limits.h> 
 
 
 #include "hvac_internal.h"
@@ -48,125 +49,130 @@ extern __thread bool tl_disable_redirect;
 
 static long write_latencies = 0; 
 
+char * hvac_checkpoint_dir; 
+struct timeval checkpoint_start, checkpoint_end; 
+int checkpoint_fd; 
 
-/* fopen wrapper */
-FILE *WRAP_DECL(fopen)(const char *path, const char *mode)
-{
-
-	MAP_OR_FAIL(fopen);
-	if (g_disable_redirect || tl_disable_redirect) return __real_fopen( path, mode);
-
-	FILE *ptr = __real_fopen(path,mode);
-
-	if (ptr != NULL)
-	{
-		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
-		{
-			L4C_INFO("FOpen: Tracking File %s",path);
-		}
-	}	
-	
-	return ptr;
-}
 
 
 /* fopen wrapper */
-FILE *WRAP_DECL(fopen64)(const char *path, const char *mode)
-{
+// FILE *WRAP_DECL(fopen)(const char *path, const char *mode)
+// {
 
-	MAP_OR_FAIL(fopen64);
-	if (g_disable_redirect || tl_disable_redirect) return __real_fopen64( path, mode);
+// 	MAP_OR_FAIL(fopen);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_fopen( path, mode);
 
-	FILE *ptr = __real_fopen64(path,mode);
+// 	FILE *ptr = __real_fopen(path,mode);
 
-	if (ptr != NULL)
-	{
-		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
-		{
-			L4C_INFO("FOpen64: Tracking File %s",path);
-		}
-	}	
+// 	if (ptr != NULL)
+// 	{
+// 		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
+// 		{
+// 			L4C_INFO("FOpen: Tracking File %s",path);
+// 		}
+// 	}	
 	
-	return ptr;
-}
-
-int WRAP_DECL(open)(const char *pathname, int flags, ...)
-{
-	int ret = 0;
-	va_list ap;
-	int mode = 0;
-	int use_mode = 0; //sy: add // you can revert this change
-
-	struct timeval start, end; 
-	gettimeofday(&start, NULL); 
-
-	if (flags & O_CREAT)
-	{
-		va_start(ap, flags);
-		mode = va_arg(ap, int);
-		va_end(ap);
-		use_mode = 1; //sy: add
-	}
-
-	MAP_OR_FAIL(open);
-	if (g_disable_redirect || tl_disable_redirect){
-		if (use_mode) { //sy: add
-            return __real_open(pathname, flags, mode);
-        }
-		else {
-			return __real_open(pathname, flags, mode);
-		}
-	}
-
-	/* For now pass the open to GPFS  - I think the open is cheap
-	 * possibly asychronous.
-	 * If this impedes performance we can investigate a cheap way of generating
-	 * an FD
-	 */
-	ret = __real_open(pathname, flags, mode); //original code
-	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
+// 	return ptr;
+// }
 
 
-	// C++ code determines whether to track
-	if (ret != -1){
-		if (hvac_track_file(pathname, flags, ret))
-		{
-			L4C_INFO("Open: Tracking file %s",pathname);
-			gettimeofday(&end, NULL); 
-			// Debug: 시간 차이 계산 (microsecond 단위)
-			long seconds = end.tv_sec - start.tv_sec;
-			long microseconds = end.tv_usec - start.tv_usec;
-			long total_microseconds = seconds * 1000000 + microseconds;
-			L4C_INFO("Open latency: %lld", total_microseconds); 
-		}
-		else{
-            //L4C_INFO("Tracking %s failed", pathname); 
-		}
-	}
+// /* fopen wrapper */
+// FILE *WRAP_DECL(fopen64)(const char *path, const char *mode)
+// {
+
+// 	MAP_OR_FAIL(fopen64);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_fopen64( path, mode);
+
+// 	FILE *ptr = __real_fopen64(path,mode);
+
+// 	if (ptr != NULL)
+// 	{
+// 		if (hvac_track_file(path, O_RDONLY, fileno(ptr)))
+// 		{
+// 			L4C_INFO("FOpen64: Tracking File %s",path);
+// 		}
+// 	}	
+	
+// 	return ptr;
+// }
+
+// int WRAP_DECL(open)(const char *pathname, int flags, ...)
+// {
+// 	int ret = 0;
+// 	va_list ap;
+// 	int mode = 0;
+// 	int use_mode = 0; //sy: add // you can revert this change
+
+// 	struct timeval start, end; 
+// 	gettimeofday(&start, NULL); 
+
+// 	if (flags & O_CREAT)
+// 	{
+// 		va_start(ap, flags);
+// 		mode = va_arg(ap, int);
+// 		va_end(ap);
+// 		use_mode = 1; //sy: add
+// 	}
+
+// 	MAP_OR_FAIL(open);
+// 	if (g_disable_redirect || tl_disable_redirect){
+// 		if (use_mode) { //sy: add
+//             return __real_open(pathname, flags, mode);
+//         }
+// 		else {
+// 			return __real_open(pathname, flags, mode);
+// 		}
+// 	}
+
+// 	/* For now pass the open to GPFS  - I think the open is cheap
+// 	 * possibly asychronous.
+// 	 * If this impedes performance we can investigate a cheap way of generating
+// 	 * an FD
+// 	 */
+// 	ret = __real_open(pathname, flags, mode); //original code
+// 	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
+
+
+// 	// C++ code determines whether to track
+// 	if (ret != -1){
+// 		if (hvac_track_file(pathname, flags, ret))
+// 		{
+// 			L4C_INFO("Open: Tracking file %s",pathname);
+// 			gettimeofday(&end, NULL); 
+// 			// Debug: 시간 차이 계산 (microsecond 단위)
+// 			long seconds = end.tv_sec - start.tv_sec;
+// 			long microseconds = end.tv_usec - start.tv_usec;
+// 			long total_microseconds = seconds * 1000000 + microseconds;
+// 			L4C_INFO("Open latency: %lld", total_microseconds); 
+// 		}
+// 		else{
+//             //L4C_INFO("Tracking %s failed", pathname); 
+// 		}
+// 	}
 
 
 
-	return ret;
-}
+// 	return ret;
+// }
 
 
 
-/*
+// /*
 
-<PGT on HVAC> 
-- Client should pass to server the CLOCK TIME 
-on its open request for the checkpoint file 
-- hvac_rpc_state 등 자료구조에 실을 수 있어 
-- hvac_flush_fn 에서 close가 최종적으로 처리될 때 CLOCK TIME의 차이로 
-쓰기 완료되는 시간 비교 가능  
+// <PGT on HVAC> 
+// - Client should pass to server the CLOCK TIME 
+// on its open request for the checkpoint file 
+// - hvac_rpc_state 등 자료구조에 실을 수 있어 
+// - hvac_flush_fn 에서 close가 최종적으로 처리될 때 CLOCK TIME의 차이로 
+// 쓰기 완료되는 시간 비교 가능  
 
-<PGT on PFS> 
-- Comment out all functions in wrappers: 
-- Only maintain wrapper in Open64: When checkpoint file was tracked on the wrappers,
-Track the CLOCK TIME. 
-- On the close function for the checkpoint file, Track the CLOCK TIME again.
+// <PGT on PFS> 
+// - Comment out all functions in wrappers: 
+// - Only maintain wrapper in Open64: When checkpoint file was tracked on the wrappers,
+// Track the CLOCK TIME. 
+// - On the close function for the checkpoint file, Track the CLOCK TIME again.
 
-*/
+// */
 
 
 
@@ -178,7 +184,22 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 	int use_mode = 0; //sy: add // you can revert this change
 
 	struct timeval start, end; 
-	gettimeofday(&start, NULL); 
+
+
+	
+	// pathname이 HVAC_CHECKPOINT_DIR 에 속하면 checkpoint_start 
+
+	hvac_checkpoint_dir = getenv("HVAC_CHECKPOINT_DIR");
+	
+	if (strstr(pathname, hvac_checkpoint_dir) != NULL)
+	{
+		L4C_INFO("Checkpoint file opened: %s", pathname); 
+		L4C_INFO("Checkpoint directory: %s", hvac_checkpoint_dir); 
+		gettimeofday(&checkpoint_start, NULL); 
+	} 
+		
+
+
 
 	if (flags & O_CREAT)
 	{
@@ -207,22 +228,29 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
 
 	// C++ code determines whether to track
-	if (ret != -1){
-		if (hvac_track_file(pathname, flags, ret))
-		{
-			L4C_INFO("Open: Tracking file %s",pathname);
+	// if (ret != -1){
+	// 	if (hvac_track_file(pathname, flags, ret))
+	// 	{
+	// 		L4C_INFO("Open: Tracking file %s",pathname);
 			
-			gettimeofday(&end, NULL); 
-			// Debug: 시간 차이 계산 (microsecond 단위)
-			long seconds = end.tv_sec - start.tv_sec;
-			long microseconds = end.tv_usec - start.tv_usec;
-			long total_microseconds = seconds * 1000000 + microseconds;
-			L4C_INFO("Open latency: %lld", total_microseconds); 
-		}
-		else{
-            //L4C_INFO("Tracking %s failed", pathname); 
-		}
-	}
+	// 		gettimeofday(&end, NULL); 
+	// 		// Debug: 시간 차이 계산 (microsecond 단위)
+	// 		long seconds = end.tv_sec - start.tv_sec;
+	// 		long microseconds = end.tv_usec - start.tv_usec;
+	// 		long total_microseconds = seconds * 1000000 + microseconds;
+	// 		L4C_INFO("Open latency: %lld", total_microseconds); 
+	// 	}
+	// 	else{
+    //         //L4C_INFO("Tracking %s failed", pathname); 
+	// 	}
+	// }
+
+	if (strstr(pathname, hvac_checkpoint_dir) != NULL)
+	{
+		checkpoint_fd = ret; 
+	} 
+
+
 	return ret;
 }
 
@@ -239,378 +267,394 @@ int WRAP_DECL(close)(int fd)
 	MAP_OR_FAIL(close);
 	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
 
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{
-		L4C_INFO("Close to file %s",path);
-		hvac_remove_fd(fd);
+	// const char *path = hvac_get_path(fd);
+	// if (path)
+	// {
+	// 	L4C_INFO("Close to file %s",path);
+	// 	hvac_remove_fd(fd);
 
-		// Debug
-		L4C_INFO("Elapsed time\t%ld microseconds for %s\n", write_latencies, hvac_get_path(fd));
+	// 	// Debug
+	// 	L4C_INFO("Elapsed time\t%ld microseconds for %s\n", write_latencies, hvac_get_path(fd));
 
 
-		gettimeofday(&end, NULL); 
-		// Debug: 시간 차이 계산 (microsecond 단위)
-		long seconds = end.tv_sec - start.tv_sec;
-		long microseconds = end.tv_usec - start.tv_usec;
-		long total_microseconds = seconds * 1000000 + microseconds;
-		L4C_INFO("Close latency: %lld", total_microseconds);
-	}
+	// 	gettimeofday(&end, NULL); 
+	// 	// Debug: 시간 차이 계산 (microsecond 단위)
+	// 	long seconds = end.tv_sec - start.tv_sec;
+	// 	long microseconds = end.tv_usec - start.tv_usec;
+	// 	long total_microseconds = seconds * 1000000 + microseconds;
+	// 	L4C_INFO("Close latency: %lld", total_microseconds);
+	// }
 	//L4C_INFO("Close - path: %s", path); 
 
 
+	char path[PATH_MAX];
+    char fd_path[PATH_MAX];
+
+    snprintf(fd_path, sizeof(fd_path), "/proc/self/fd/%d", fd);
+    ssize_t len = readlink(fd_path, path, sizeof(path) - 1);
+    
 	if ((ret = __real_close(fd)) != 0)
 	{
 		L4C_PERROR("Error from close");
 		return ret;
 	}
  
-
+	if (strstr(path, hvac_checkpoint_dir) != NULL)
+	{
+		gettimeofday(&checkpoint_end, NULL); 
+		// Debug: 시간 차이 계산 (microsecond 단위)
+		long seconds = checkpoint_end.tv_sec - checkpoint_start.tv_sec;
+		long microseconds = checkpoint_end.tv_usec - checkpoint_start.tv_usec;
+		long total_microseconds = seconds * 1000000 + microseconds;
+		L4C_INFO("Checkpoint latency for file %s: %lld", 
+			path, total_microseconds);
+	}
+	
 	return ret;
 }
 
-ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
-{
-	int ret = -1;
+// ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
+// {
+// 	int ret = -1;
 	
-	//remove me
-    MAP_OR_FAIL(read);	
+// 	//remove me
+//     MAP_OR_FAIL(read);	
 	
-    const char *path = hvac_get_path(fd);
+//     const char *path = hvac_get_path(fd);
 
-	ret = hvac_remote_read(fd,buf,count);
+// 	ret = hvac_remote_read(fd,buf,count);
 
-    //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
+//     //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
 	
-	if (path)
-    {
-        L4C_INFO("Read to file %s of size %ld returning %lld bytes",path,count,ret);
-    }
+// 	if (path)
+//     {
+//         L4C_INFO("Read to file %s of size %ld returning %lld bytes",path,count,ret);
+//     }
 	
-	if (ret < 0)
-	{
-		ret = __real_read(fd,buf,count);			
-	}
+// 	if (ret < 0)
+// 	{
+// 		ret = __real_read(fd,buf,count);			
+// 	}
 		
-    return ret;
-}
+//     return ret;
+// }
 
 
 
 
-ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
-{
-	ssize_t ret = -1;
-	MAP_OR_FAIL(pread);
+// ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
+// {
+// 	ssize_t ret = -1;
+// 	MAP_OR_FAIL(pread);
 
-	const char *path = hvac_get_path(fd);
-	L4C_INFO("Pread - path: %s", path); 
+// 	const char *path = hvac_get_path(fd);
+// 	L4C_INFO("Pread - path: %s", path); 
 
-	if (path)
-	{                
-		L4C_INFO("pread to tracked file %s",path);
+// 	if (path)
+// 	{                
+// 		L4C_INFO("pread to tracked file %s",path);
 		
-//		memset(buf, 0, count);
-		ret = hvac_remote_pread(fd, buf, count, offset);
+// //		memset(buf, 0, count);
+// 		ret = hvac_remote_pread(fd, buf, count, offset);
 
-		if(ret < 0){
+// 		if(ret < 0){
 			
-			L4C_INFO("remote pread_error returned %s",path);
-			ret = __real_pread(fd,buf,count,offset);
-			L4C_INFO("readbytes %d\n", ret);
-		}
-	}
-	else
-	{
-		ret = __real_pread(fd,buf,count,offset);
-	}
+// 			L4C_INFO("remote pread_error returned %s",path);
+// 			ret = __real_pread(fd,buf,count,offset);
+// 			L4C_INFO("readbytes %d\n", ret);
+// 		}
+// 	}
+// 	else
+// 	{
+// 		ret = __real_pread(fd,buf,count,offset);
+// 	}
 
-	return ret;
-}
-
-
-
-ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
-{
-	//remove me
-	MAP_OR_FAIL(read64);
+// 	return ret;
+// }
 
 
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{	
-		L4C_INFO("Read64 to file %s of size %ld",path,count);
-	}
-	L4C_INFO("read64 - path: %s", path); 
+
+// ssize_t WRAP_DECL(read64)(int fd, void *buf, size_t count)
+// {
+// 	//remove me
+// 	MAP_OR_FAIL(read64);
 
 
-	return __real_read64(fd,buf,count);
-}
+// 	const char *path = hvac_get_path(fd);
+// 	if (path)
+// 	{	
+// 		L4C_INFO("Read64 to file %s of size %ld",path,count);
+// 	}
+// 	L4C_INFO("read64 - path: %s", path); 
 
 
-/*
-ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
-{
-	MAP_OR_FAIL(write);
-	return __real_write(fd, buf, count);
-
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{
-		L4C_ERR("Write to file %s of size %ld",path,count);
-		assert(false);
-	}
-	L4C_INFO("write - path: %s", path); 
+// 	return __real_read64(fd,buf,count);
+// }
 
 
-	return __real_write(fd, buf, count);
-}
-*/
+// /*
+// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
+// {
+// 	MAP_OR_FAIL(write);
+// 	return __real_write(fd, buf, count);
 
-ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
-{
-    MAP_OR_FAIL(write);  // Resolves the real `write` function.
-
-	struct timeval start, end; 
-
-	gettimeofday(&start, NULL); 
-
-    const char *path = hvac_get_path(fd);
-    if (path) {
-        // Handle caching logic here
-        ssize_t cached_write = hvac_cache_write(fd, buf, count);
-        if (cached_write > 0) {
-			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
-			gettimeofday(&end, NULL); 
-			// Debug: 시간 차이 계산 (microsecond 단위)
-			long seconds = end.tv_sec - start.tv_sec;
-			long microseconds = end.tv_usec - start.tv_usec;
-			long total_microseconds = seconds * 1000000 + microseconds;
-			write_latencies += total_microseconds; 
-
-            return cached_write;  // Successfully written to cache
-        }
-    }
-
-    // If not cached or an error occurs, perform the real write
-    return __real_write(fd, buf, count);
-}
+// 	const char *path = hvac_get_path(fd);
+// 	if (path)
+// 	{
+// 		L4C_ERR("Write to file %s of size %ld",path,count);
+// 		assert(false);
+// 	}
+// 	L4C_INFO("write - path: %s", path); 
 
 
-off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
-{
-	MAP_OR_FAIL(lseek);
-	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
+// 	return __real_write(fd, buf, count);
+// }
+// */
+
+// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
+// {
+//     MAP_OR_FAIL(write);  // Resolves the real `write` function.
+
+// 	struct timeval start, end; 
+
+// 	gettimeofday(&start, NULL); 
+
+//     const char *path = hvac_get_path(fd);
+//     if (path) {
+//         // Handle caching logic here
+//         ssize_t cached_write = hvac_cache_write(fd, buf, count);
+//         if (cached_write > 0) {
+// 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
+// 			gettimeofday(&end, NULL); 
+// 			// Debug: 시간 차이 계산 (microsecond 단위)
+// 			long seconds = end.tv_sec - start.tv_sec;
+// 			long microseconds = end.tv_usec - start.tv_usec;
+// 			long total_microseconds = seconds * 1000000 + microseconds;
+// 			write_latencies += total_microseconds; 
+
+//             return cached_write;  // Successfully written to cache
+//         }
+//     }
+
+//     // If not cached or an error occurs, perform the real write
+//     return __real_write(fd, buf, count);
+// }
+
+
+// off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
+// {
+// 	MAP_OR_FAIL(lseek);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
 	
-	// 체크포인트 읽기 모드이면 lseek rpc 전송 
-	int flag = fcntl(fd, F_GETFL); 
-	int access_mode = flag & O_ACCMODE; 
+// 	// 체크포인트 읽기 모드이면 lseek rpc 전송 
+// 	int flag = fcntl(fd, F_GETFL); 
+// 	int access_mode = flag & O_ACCMODE; 
 
-	// Debug: offset==0, whence==SEEK_CUR 제외한 요청은 특별히 로그
-	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
-	{
-		// const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
-		// L4C_INFO("lseek: %d %d %s", fd, offset, str);
-	}
-	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
-	{
-		// L4C_INFO("Got an LSEEK on a tracked file %d %lld %d", fd, offset, whence);	
-		return hvac_remote_lseek(fd,offset,whence);
-	}
-
-
-	return __real_lseek(fd, offset, whence);
-}
-
-off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
-{
-	MAP_OR_FAIL(lseek64);
-	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
-
-	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
-	{
-		// const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
-		// L4C_INFO("lseek64: %d %lld %s", fd, offset, str);
-	}
-	int flag = fcntl(fd, F_GETFL); 
-	int access_mode = flag & O_ACCMODE; 
-	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
-	{
-		// L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d", fd, offset, whence);	
-		return hvac_remote_lseek(fd,offset,whence);
-	}
-	return __real_lseek64(fd, offset, whence);
-}
-
-ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
-{
-	MAP_OR_FAIL(readv);
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{
-		L4C_INFO("Readv to tracked file %s",path);
-	}
-	L4C_INFO("Pread - path: %s", path); 
+// 	// Debug: offset==0, whence==SEEK_CUR 제외한 요청은 특별히 로그
+// 	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
+// 	{
+// 		// const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
+// 		// L4C_INFO("lseek: %d %d %s", fd, offset, str);
+// 	}
+// 	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+// 	{
+// 		// L4C_INFO("Got an LSEEK on a tracked file %d %lld %d", fd, offset, whence);	
+// 		return hvac_remote_lseek(fd,offset,whence);
+// 	}
 
 
-	return __real_readv(fd, iov, iovcnt);
+// 	return __real_lseek(fd, offset, whence);
+// }
 
-}
+// off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
+// {
+// 	MAP_OR_FAIL(lseek64);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
 
+// 	// if (!(offset == 0) && !(whence == SEEK_CUR)) 
+// 	{
+// 		// const char * str = (whence == SEEK_CUR)? "SEEK_CUR" : (whence == SEEK_SET)? "SEEK_SET" : "SEEK_END"; 
+// 		// L4C_INFO("lseek64: %d %lld %s", fd, offset, str);
+// 	}
+// 	int flag = fcntl(fd, F_GETFL); 
+// 	int access_mode = flag & O_ACCMODE; 
+// 	if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+// 	{
+// 		// L4C_INFO("Got an LSEEK64 on a tracked file %d %ld %d", fd, offset, whence);	
+// 		return hvac_remote_lseek(fd,offset,whence);
+// 	}
+// 	return __real_lseek64(fd, offset, whence);
+// }
 
-/* sy: function for debugging */
-char *buffer_to_hex(const void *buf, size_t size) {
-    const char *hex_digits = "0123456789ABCDEF";
-    const unsigned char *buffer = (const unsigned char *)buf;
-    char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
-    if (!hex_str) {
-        perror("malloc");
-        return NULL;
-    }
-    for (size_t i = 0; i < size; ++i) {
-        hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
-        hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
-    }
-    hex_str[size * 2] = '\0'; // Null terminator
-    return hex_str;
-}
-
-
-
-/*
-   void* WRAP_DECL(mmap)(void *addr, ssize_t length, int prot, int flags, int fd, off_t offset)
-   {
-   MAP_OR_FAIL(mmap);
-   if (path)
-   {
-   L4C_INFO("MMAP to tracked file %s Length %ld Offset %ld",path, length, offset);
-   }
-
-   return __real_mmap(addr,length, prot, flags, fd, offset);
-
-   }
-   */
+// ssize_t WRAP_DECL(readv)(int fd, const struct iovec *iov, int iovcnt)
+// {
+// 	MAP_OR_FAIL(readv);
+// 	const char *path = hvac_get_path(fd);
+// 	if (path)
+// 	{
+// 		L4C_INFO("Readv to tracked file %s",path);
+// 	}
+// 	L4C_INFO("Pread - path: %s", path); 
 
 
-#if 0
+// 	return __real_readv(fd, iov, iovcnt);
+
+// }
+
+
+// /* sy: function for debugging */
+// char *buffer_to_hex(const void *buf, size_t size) {
+//     const char *hex_digits = "0123456789ABCDEF";
+//     const unsigned char *buffer = (const unsigned char *)buf;
+//     char *hex_str = (char *)malloc(size * 2 + 1); // 2 hex chars per byte + null terminator
+//     if (!hex_str) {
+//         perror("malloc");
+//         return NULL;
+//     }
+//     for (size_t i = 0; i < size; ++i) {
+//         hex_str[i * 2] = hex_digits[(buffer[i] >> 4) & 0xF];
+//         hex_str[i * 2 + 1] = hex_digits[buffer[i] & 0xF];
+//     }
+//     hex_str[size * 2] = '\0'; // Null terminator
+//     return hex_str;
+// }
 
 
 
+// /*
+//    void* WRAP_DECL(mmap)(void *addr, ssize_t length, int prot, int flags, int fd, off_t offset)
+//    {
+//    MAP_OR_FAIL(mmap);
+//    if (path)
+//    {
+//    L4C_INFO("MMAP to tracked file %s Length %ld Offset %ld",path, length, offset);
+//    }
 
-size_t WRAP_DECL(fwrite)(const void *ptr, size_t size, size_t count, FILE *stream)
-{
-	MAP_OR_FAIL(fwrite);
+//    return __real_mmap(addr,length, prot, flags, fd, offset);
 
-	return __real_fwrite(ptr,size,count,stream);
-}
-
-int WRAP_DECL(fsync)(int fd)
-{
-	MAP_OR_FAIL(fsync);
-	if (g_disable_redirect || tl_disable_redirect) return __real_fsync(fd);
-
-	return __real_fsync(fd);
-}
-
-int WRAP_DECL(fdatasync)(int fd)
-{
-	MAP_OR_FAIL(fdatasync);
-	if (g_disable_redirect || tl_disable_redirect) return __real_fdatasync(fd);
-
-	return __real_fdatasync(fd);
-}
-
-off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
-{
-	MAP_OR_FAIL(lseek);
-	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
-	L4C_INFO("Got a LSEEK --- Damnit\n");
-	return __real_lseek(fd, offset, whence);
-}
-
-off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
-{
-	MAP_OR_FAIL(lseek64);
-	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
-	if (hvac_file_tracked(fd))
-		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld\n", fd, offset);
-	return __real_lseek64(fd, offset, whence);
-}
-
-/* fopen wrapper */
-FILE *WRAP_DECL(fopen)(const char *path, const char *mode)
-{
-
-	MAP_OR_FAIL(fopen);
-	if (g_disable_redirect || tl_disable_redirect) return __real_fopen( path, mode);
+//    }
+//    */
 
 
-	L4C_INFO("Intercepted Fopen %s",path);
-
-	return __real_fopen(path, mode);
-}
+// #if 0
 
 
 
-bool check_open_mode(const int flags, bool ignore_check)
-{
-	//Always back out of RDONLY
-	if ((flags & O_ACCMODE) == O_WRONLY) {
-		return false;
-	}
 
-	if ((flags & O_APPEND)) {
-		return false;
-	}
-	return true;
-}
+// size_t WRAP_DECL(fwrite)(const void *ptr, size_t size, size_t count, FILE *stream)
+// {
+// 	MAP_OR_FAIL(fwrite);
 
-/* Wrappers */
-int WRAP_DECL(fclose)(FILE *fp)
-{
-	int ret = 0;
+// 	return __real_fwrite(ptr,size,count,stream);
+// }
 
-	/* RTLD Next fclose call */
-	MAP_OR_FAIL(fclose);
+// int WRAP_DECL(fsync)(int fd)
+// {
+// 	MAP_OR_FAIL(fsync);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_fsync(fd);
 
-	if (g_disable_redirect || tl_disable_redirect) return __real_fclose(fp);
+// 	return __real_fsync(fd);
+// }
 
-	if ((ret = __real_fclose(fp)) != 0)
-	{
-		L4C_PERROR("Error from fclose");
-		return ret;
-	}
+// int WRAP_DECL(fdatasync)(int fd)
+// {
+// 	MAP_OR_FAIL(fdatasync);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_fdatasync(fd);
 
-	return ret;
-}
+// 	return __real_fdatasync(fd);
+// }
+
+// off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)
+// {
+// 	MAP_OR_FAIL(lseek);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek(fd,offset,whence);
+// 	L4C_INFO("Got a LSEEK --- Damnit\n");
+// 	return __real_lseek(fd, offset, whence);
+// }
+
+// off64_t WRAP_DECL(lseek64)(int fd, off64_t offset, int whence)
+// {
+// 	MAP_OR_FAIL(lseek64);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_lseek64(fd,offset,whence);
+// 	if (hvac_file_tracked(fd))
+// 		L4C_INFO("Got an LSEEK64 on a tracked file %d %ld\n", fd, offset);
+// 	return __real_lseek64(fd, offset, whence);
+// }
+
+// /* fopen wrapper */
+// FILE *WRAP_DECL(fopen)(const char *path, const char *mode)
+// {
+
+// 	MAP_OR_FAIL(fopen);
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_fopen( path, mode);
 
 
-ssize_t WRAP_DECL(pwrite)(int fd, const void *buf, size_t count, off_t offset)
-{
-	MAP_OR_FAIL(pwrite);
-	return __real_pwrite(fd, buf, count, offset);
-}
+// 	L4C_INFO("Intercepted Fopen %s",path);
+
+// 	return __real_fopen(path, mode);
+// }
 
 
-ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
-{
-	MAP_OR_FAIL(pread);
-	return __real_pread(fd,buf,count,offset);
-}
+
+// bool check_open_mode(const int flags, bool ignore_check)
+// {
+// 	//Always back out of RDONLY
+// 	if ((flags & O_ACCMODE) == O_WRONLY) {
+// 		return false;
+// 	}
+
+// 	if ((flags & O_APPEND)) {
+// 		return false;
+// 	}
+// 	return true;
+// }
+
+// /* Wrappers */
+// int WRAP_DECL(fclose)(FILE *fp)
+// {
+// 	int ret = 0;
+
+// 	/* RTLD Next fclose call */
+// 	MAP_OR_FAIL(fclose);
+
+// 	if (g_disable_redirect || tl_disable_redirect) return __real_fclose(fp);
+
+// 	if ((ret = __real_fclose(fp)) != 0)
+// 	{
+// 		L4C_PERROR("Error from fclose");
+// 		return ret;
+// 	}
+
+// 	return ret;
+// }
 
 
-ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
-{
-	MAP_OR_FAIL(write);
-	return __real_write(fd, buf, count);
+// ssize_t WRAP_DECL(pwrite)(int fd, const void *buf, size_t count, off_t offset)
+// {
+// 	MAP_OR_FAIL(pwrite);
+// 	return __real_pwrite(fd, buf, count, offset);
+// }
 
-	const char *path = hvac_get_path(fd);
-	if (path)
-	{
-		L4C_INFO("Write to file %s of size %ld",path,count);
-	}
 
-	return __real_write(fd, buf, count);
-}
+// ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
+// {
+// 	MAP_OR_FAIL(pread);
+// 	return __real_pread(fd,buf,count,offset);
+// }
 
-#endif
+
+// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
+// {
+// 	MAP_OR_FAIL(write);
+// 	return __real_write(fd, buf, count);
+
+// 	const char *path = hvac_get_path(fd);
+// 	if (path)
+// 	{
+// 		L4C_INFO("Write to file %s of size %ld",path,count);
+// 	}
+
+// 	return __real_write(fd, buf, count);
+// }
+
+// #endif
