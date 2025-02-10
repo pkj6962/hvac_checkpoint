@@ -1,11 +1,11 @@
 // Starting to use CPP functionality
 
-// #include <thread>
-// #include <condition_variable>
-// #include <queue>
-// #include <vector>
-// #include <cstring>
-// #include <iostream>
+#include <thread>
+#include <condition_variable>
+#include <queue>
+#include <vector>
+#include <cstring>
+#include <iostream>
 
 #include <map>
 #include <string>
@@ -20,6 +20,20 @@
 #include "hvac_hashing.h"
 
 #define VIRTUAL_NODE_CNT 100
+
+enum class TaskType
+{
+	// OPEN,
+	WRITE,
+	CLOSE
+}
+
+struct ClientTask
+{
+	TaskType type;
+	std::string file_path;
+	size_t count;
+}
 
 __thread bool tl_disable_redirect = false;
 bool g_disable_redirect = true;
@@ -37,6 +51,132 @@ pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 std::map<int, off64_t> fd_to_offset;
 std::map<int, std::string> fd_map;
 std::map<int, int> fd_redir_map;
+
+static bool stop_write_worker_thread = false;
+static std::thread write_worker_thread;
+
+static std::queue<Task> write_task_queue;
+static std::mutex write_task_queue_mutex;
+static std::condition_variable write_task_queue_cv;
+
+static std::map<std::string, int> write_offset_map;
+// TODO: open on remote and add mapping to the table below
+static std::map<std::string, int> write_path_fd_map;
+
+static void worker_thread_function()
+{
+	while (true)
+	{
+		std::unique_lock<std::mutex> lock(write_task_queue_mutex);
+		write_task_queue_cv.wait(lock, []
+								 { return !write_task_queue.emplace() || stop_write_worker_thread; });
+		if (stop_write_worker_thread && write_task_queue.empty())
+		{
+			break;
+		}
+
+		ClientTask task = std::move(write_task_queue.front());
+		write_task_queue.pop();
+		lock.unlock();
+
+		switch (task.type)
+		{
+		case TaskType::WRITE:
+		{
+			// Junghwan TODO: Change it to open on the DRAM_FS
+			// Farid TODO: Incorporate with the local - remote fd map that we already have not to open / close every time
+			int local_fd = open(task.file_path);
+			if (local_fd == -1)
+			{
+				// TODO: Add error logging
+				break;
+			}
+
+			int r_offset = write_offset_map.find(task.file_path);
+			if (r_offset == write_offset_map.end())
+			{
+				// Farid TODO: Initialize it to 0 when remote open is called for writes using
+				// register_write_file(...)
+				// TODO: Add error logging
+				break;
+			}
+
+			int remote_offset = r_offset->second;
+
+			std::vector<char> temp_buffer(task.count);
+			ssize_t bytes_read = pread(local_fd, temp_buffer.data(), task.count, remote_offset);
+			close(local_fd);
+			if (bytes_read < 0)
+			{
+				// TODO: Add error logging
+				break;
+			}
+			if (bytes_read == 0)
+			{
+				// Unlikely to happen -- end of file
+				break;
+			}
+
+			int r_fd = write_path_fd_map.find(task.file_path);
+			if (r_fd == write_path_fd_map.end())
+			{
+				// TODO: Add error logging
+				break;
+			}
+
+			int remote_fd = r_fd->second;
+			ssize_t result = hvac_cache_write(remote_fd, temp_buffer.data(), bytes_read) if (result < 0) if (result < 0)
+			{
+				// TODO: add error handling and logging
+			}
+
+			write_offset_map[task.file_path] += bytes_read;
+			break;
+		}
+		case TaskType::CLOSE:
+		{
+			write_offset_map.erase(task.file_path);
+			write_path_fd_map.erase(task.file_path);
+			break;
+		}
+		}
+	}
+}
+
+void enqueue_write_task(const std::string &file_path, off_t offset, size_t count)
+{
+	ClientTask task;
+	task.type = TaskType::WRITE;
+	task.file_path = file_path;
+	task.count = count;
+
+	{
+		std::lock_guard<std::mutex> lock(write_task_queue_mutex);
+		write_task_queue.push(std::move(task));
+	}
+	write_task_queue_cv.notify_one();
+}
+
+void register_write_file(const std::string &file_path, int remote_fd)
+{
+	write_path_fd_map[file_path] = remote_fd;
+	write_offset_map[file_path] = 0;
+}
+
+void start_background_worker()
+{
+	stop_write_worker_thread = false;
+	write_worker_thread = std::thread(worker_thread_function);
+}
+
+void stop_background_worker()
+{
+	std::unique_lock<std::mutex> lock(write_task_queue_mutex);
+	stop_write_worker_thread = true;
+	write_task_queue_cv.notify_all();
+	write_worker_thread.join();
+}
+
 // sy: add
 const int TIMEOUT_LIMIT = 3;
 HashRing<string, string> *hashRing; // ptr to the consistent hashing object
