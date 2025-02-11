@@ -158,6 +158,7 @@ extern "C" int hvac_extract_rank(const char* file_path);
 
 extern bool hvac_track_file(const char* path, int flags, int fd);
 extern const char * hvac_get_path(int fd);
+extern const char * hvac_fetch_path(int fd);
 // extern string hvac_get_bbpath(string path); 
 extern bool  hvac_remove_fd(int fd);
 extern ssize_t hvac_cache_write(int fd, const void *buf, size_t count);

@@ -895,3 +895,27 @@ hvac_get_bbpath(string path)
 
   return bbpath;
 }
+
+
+string
+hvac_get_drampath(string path)
+{
+  if (getenv("DRAMFSPATH") == NULL)
+  {
+    L4C_ERR("Set DRAMFS PATH Prior to using HVAC");
+  }
+  string dramfs_path = string(getenv("DRAMFSPATH")) + "/XXXXXX";
+  char *newdir = (char *)malloc(strlen(dramfs_path.c_str()) + 1);
+  strcpy(newdir, dramfs_path.c_str());
+  mkdtemp(newdir);
+  string dirpath = newdir;
+
+  filesystem::path filepath = path;
+  string filename = filepath.filename().string();
+  string drampath = dirpath + string("/") + filename;
+
+  L4C_INFO("Original path: %s\n", path.c_str());
+  L4C_INFO("DRAM path: %s\n", drampath.c_str());
+
+  return drampath;
+}

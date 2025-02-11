@@ -228,22 +228,22 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 	// ret = use_mode ? __real_open(pathname, flags, mode) : __real_open(pathname, flags); //sy: add
 
 	// C++ code determines whether to track
-	// if (ret != -1){
-	// 	if (hvac_track_file(pathname, flags, ret))
-	// 	{
-	// 		L4C_INFO("Open: Tracking file %s",pathname);
+	if (ret != -1){
+		if (hvac_track_file(pathname, flags, ret)) 
+		{
+			L4C_INFO("Open: Tracking file %s",pathname);
 			
-	// 		gettimeofday(&end, NULL); 
-	// 		// Debug: 시간 차이 계산 (microsecond 단위)
-	// 		long seconds = end.tv_sec - start.tv_sec;
-	// 		long microseconds = end.tv_usec - start.tv_usec;
-	// 		long total_microseconds = seconds * 1000000 + microseconds;
-	// 		L4C_INFO("Open latency: %lld", total_microseconds); 
-	// 	}
-	// 	else{
-    //         //L4C_INFO("Tracking %s failed", pathname); 
-	// 	}
-	// }
+			gettimeofday(&end, NULL); 
+			// Debug: 시간 차이 계산 (microsecond 단위)
+			long seconds = end.tv_sec - start.tv_sec;
+			long microseconds = end.tv_usec - start.tv_usec;
+			long total_microseconds = seconds * 1000000 + microseconds;
+			L4C_INFO("Open latency: %lld", total_microseconds); 
+		}
+		else{
+            //L4C_INFO("Tracking %s failed", pathname); 
+		}
+	}
 
 	if (strstr(pathname, hvac_checkpoint_dir) != NULL)
 	{
@@ -392,53 +392,60 @@ int WRAP_DECL(close)(int fd)
 // }
 
 
-// /*
-// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
-// {
-// 	MAP_OR_FAIL(write);
-// 	return __real_write(fd, buf, count);
+/*
+ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
+{
+	MAP_OR_FAIL(write);
+	return __real_write(fd, buf, count);
 
-// 	const char *path = hvac_get_path(fd);
-// 	if (path)
-// 	{
-// 		L4C_ERR("Write to file %s of size %ld",path,count);
-// 		assert(false);
-// 	}
-// 	L4C_INFO("write - path: %s", path); 
+	const char *path = hvac_get_path(fd);
+	if (path)
+	{
+		L4C_ERR("Write to file %s of size %ld",path,count);
+		assert(false);
+	}
+	L4C_INFO("write - path: %s", path); 
 
 
-// 	return __real_write(fd, buf, count);
-// }
-// */
+	return __real_write(fd, buf, count);
+}
+*/
 
-// ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
-// {
-//     MAP_OR_FAIL(write);  // Resolves the real `write` function.
+ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count) 
+{
+    MAP_OR_FAIL(write);  // Resolves the real `write` function.
 
-// 	struct timeval start, end; 
+	struct timeval start, end; 
 
-// 	gettimeofday(&start, NULL); 
+	gettimeofday(&start, NULL); 
 
-//     const char *path = hvac_get_path(fd);
-//     if (path) {
-//         // Handle caching logic here
-//         ssize_t cached_write = hvac_cache_write(fd, buf, count);
-//         if (cached_write > 0) {
-// 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
-// 			gettimeofday(&end, NULL); 
-// 			// Debug: 시간 차이 계산 (microsecond 단위)
-// 			long seconds = end.tv_sec - start.tv_sec;
-// 			long microseconds = end.tv_usec - start.tv_usec;
-// 			long total_microseconds = seconds * 1000000 + microseconds;
-// 			write_latencies += total_microseconds; 
+    const char *path = hvac_get_path(fd);
+    if (path) {
+        // Handle caching logic here
+        
+        // Logic for DRAM Write 
 
-//             return cached_write;  // Successfully written to cache
-//         }
-//     }
 
-//     // If not cached or an error occurs, perform the real write
-//     return __real_write(fd, buf, count);
-// }
+		/*
+		ssize_t cached_write = hvac_dram_write(fd, buf, count); 
+		*/        
+        ssize_t cached_write = hvac_cache_write(fd, buf, count);
+        if (cached_write > 0) {
+			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
+			gettimeofday(&end, NULL); 
+			// Debug: 시간 차이 계산 (microsecond 단위)
+			long seconds = end.tv_sec - start.tv_sec;
+			long microseconds = end.tv_usec - start.tv_usec;
+			long total_microseconds = seconds * 1000000 + microseconds;
+			write_latencies += total_microseconds; 
+
+            return cached_write;  // Successfully written to cache
+        }
+    }
+
+    // If not cached or an error occurs, perform the real write
+    return __real_write(fd, buf, count);
+}
 
 
 off_t WRAP_DECL(lseek)(int fd, off_t offset, int whence)

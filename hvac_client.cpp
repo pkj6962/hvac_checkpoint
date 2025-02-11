@@ -35,6 +35,8 @@ pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;
 std::map<int, off64_t> fd_to_offset;
 std::map<int, std::string> fd_map;
 std::map<int, int> fd_redir_map;
+std::map<int, int> fd_to_dramfd; 
+
 // sy: add
 const int TIMEOUT_LIMIT = 3;
 HashRing<string, string> *hashRing; // ptr to the consistent hashing object
@@ -203,8 +205,13 @@ bool hvac_track_file(const char *path, int flags, int fd)
         {
           L4C_INFO("Tracking used HVAC_CHECKPOINT_DIR(write) file %s", path);
           fd_map[fd] = std::filesystem::canonical(path).string();
-          
           tracked = true;
+
+          // logic for DRAMFS WRITE 
+          string drampath = hvac_get_drampath(ppath); 
+          int dramfd = open(drampath.c_str(), O_WRONLY); 
+          fd_to_dramfd[fd] = dramfd;
+          fd_to_offset[dramfd] = 0; 
         }
       }
     }
@@ -259,6 +266,26 @@ bool hvac_track_file(const char *path, int flags, int fd)
   return tracked;
 }
 
+ssize_t hvac_dram_write(int fd, const void *buf, size_t count)
+{
+  int dramfd = fd_to_dramfd[fd]; 
+  ssize_t byteswritten = write(dramfd, buf, count);
+  if (byteswritten > 0)
+  {
+    L4C_FATAL("Dram write failed"); 
+    exit(-1); 
+  }
+  assert(byteswritten == count); 
+  fd_to_offset[dramfd] += byteswritten; 
+
+  const char* _drampath = hvac_fetch_path(dramfd); 
+  string drampath = string(_drampath);
+  off_t offset = fd_to_offset[dramfd] - byteswritten; 
+  
+
+  // enqueue_task_queue(drampath, offset, count); 
+}
+
 
 ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
 {
@@ -290,12 +317,7 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
 
-  // dramfs에 쓰기 수행
-  /*
-  
 
-  
-  */
 
 
     // Wait for the server to process the write request.
@@ -526,7 +548,7 @@ void hvac_remote_close(int fd)
   int flag = fcntl(fd, F_GETFL);   
   int access_mode = flag & O_ACCMODE; 
 
-  // if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+  if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
   {
     
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
@@ -534,15 +556,30 @@ void hvac_remote_close(int fd)
     // int current_host = atoi(getenv("MPI_RANK"));
     host = hvac_extract_rank(fd_map[fd].c_str()) / hvac_client_per_node;       
 
-
-    // TODO: 체크포인트 쓰기 모드 시 별도의 close rpc 불필요 
-    // 체크포인트 쓰기시에도 일단 유지... 디버그 목적
     hvac_rpc_state_t_close *rpc_state = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));
     rpc_state->done = false;
     rpc_state->timeout = false;
     rpc_state->host = 0;
     hvac_client_comm_gen_close_rpc(host, fd, rpc_state);
+
+
+    
   }
+  else if (hvac_file_tracked(fd) && (access_mode == O_WRONLY))
+  {
+    // Logic for DRAM write 
+    int dramfd = fd_to_dramfd[fd];
+    fd_to_dramfd.erase(fd); 
+    fd_to_offset[dramfd] = 0; 
+    close(dramfd);
+  }
+  else{
+    L4C_INFO("This should not be reached"); 
+    exit(-1); 
+  }
+
+
+
 }
 
 bool hvac_file_tracked(int fd)
@@ -607,3 +644,14 @@ int hvac_extract_rank(const char* file_path)
 }
 
 
+
+const char *
+hvac_fetch_path(int fd)
+{
+  	char path[PATH_MAX];
+    char fd_path[PATH_MAX];
+
+    snprintf(fd_path, sizeof(fd_path), "/proc/self/fd/%d", fd);
+    ssize_t len = readlink(fd_path, path, sizeof(path) - 1);
+    return path;
+}
