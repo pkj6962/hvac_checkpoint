@@ -289,6 +289,15 @@ ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
     int host = current_host / hvac_client_per_node; 
     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
+
+  // dramfs에 쓰기 수행
+  /*
+  
+
+  
+  */
+
+
     // Wait for the server to process the write request.
     bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
     L4C_INFO("bytes_written:%lld", bytes_written); 

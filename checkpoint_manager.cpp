@@ -46,8 +46,6 @@ void CheckpointManager::allocate_new_chunk()
 
 
 
-// write_checkpoint 각 부분 별 차지 시간 계산 
-// 각 부분 별 자료구조 운용해서 관리해야 
 void CheckpointManager::write_checkpoint(const std::string &filename, const void *buf, size_t count, int local_fd)
 {
   const char *data = static_cast<const char *>(buf);
@@ -55,8 +53,6 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
 
   // std::lock_guard<std::mutex> lock(mtx); // Ensure thread safety
 
-  // Timer 1: 
-  auto t1 = chrono::high_resolution_clock::now();
 
   auto &meta = file_metadata[filename];
   size_t &current_chunk_index = current_file_chunk_index[filename];
@@ -72,21 +68,9 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
     meta.chunk_indexes.push_back(global_chunk_index);
   }
 
-  // Timer 2: 
-  auto t2 = chrono::high_resolution_clock::now();
-  auto latency = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-  tb1.push_back(latency.count()); 
-  
-  // Metric: How many times ALLOCATE_NEW_CHUNK was called?
-
+ 
   while (remaining > 0)
   {
-    // Timer 3: 
-    auto t3 = chrono::high_resolution_clock::now();
-    // auto latency = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1);
-    // tb1.push_back(latency.count()); 
-
-
     CheckpointChunk *chunk = get_current_chunk(current_chunk_index);
     size_t space_in_chunk = CHUNK_SIZE - chunk->offset;
 
@@ -102,10 +86,6 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
       chunk = get_current_chunk(current_chunk_index);
       space_in_chunk = CHUNK_SIZE;
     }
-    // Timer 4: 청크 할당 시간 
-    auto t4 = chrono::high_resolution_clock::now();
-    auto latency = std::chrono::duration_cast<std::chrono::microseconds>(t4 - t3);
-    tb2.push_back(latency.count()); 
 
     // Write data to the current chunk
     size_t to_write = std::min(remaining, space_in_chunk);
@@ -121,11 +101,6 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
       chunk->full = true;
       // send_chunk_to_remote(filename, chunk->buffer.get(), CHUNK_SIZE, local_fd);
     }
-    // Timer 5: 메모리 복사 시간 
-    auto t5 = chrono::high_resolution_clock::now();
-    latency = std::chrono::duration_cast<std::chrono::microseconds>(t5 - t4);
-    tb3.push_back(latency.count()); 
-
   }
 
 
@@ -162,11 +137,6 @@ void CheckpointManager::write_checkpoint(const std::string &filename, const void
 
 void CheckpointManager::read_file_metadata(const std::string &filename)
 {
-  /*
-  filename으로 file_metadata에서 FileMetadta 취득... 
-  그로부터 size 출력 
-  디버깅 목적: file_metatdata에 filename 키로서 반드시 존재할 것으로 가정
-  */
   try
   {
     auto &meta = file_metadata[filename]; 
@@ -193,8 +163,6 @@ int CheckpointManager::open_checkpoint(const std::string &filename, int flag)
     fd_to_path[fd] = filename;
     // fd_to_offset[fd] = 0; 
 
-    // 오픈 시도하는 파일에 대한 메타데이터 조사: 
-    read_file_metadata(filename); 
 
   }
   catch (...)
@@ -382,17 +350,7 @@ int CheckpointManager::close_checkpoint(int fd)
   L4C_INFO("checkpoint manager - close: %s %lld", fd_to_path[fd].c_str(), fd_to_offset[fd]); 
   long long total_latencies = std::accumulate(read_latencies.begin(), read_latencies.end(), 0LL); 
 
-  // 쓰기 타임브레이크다운 누적합 계산 및 출력 
-  long long total_tb1 = std::accumulate(tb1.begin(), tb1.end(), 0LL); 
-  long long total_tb2 = std::accumulate(tb2.begin(), tb2.end(), 0LL); 
-  long long total_tb3 = std::accumulate(tb3.begin(), tb3.end(), 0LL); 
-  L4C_INFO("tb1\t%lld", total_tb1); 
-  L4C_INFO("tb2\t%lld", total_tb2); 
-  L4C_INFO("tb3\t%lld", total_tb3); 
   L4C_INFO("Number of Allocation: %d", called);   
-
-  // fd, 요청 개수, 요청 총합(ms), 
-  L4C_INFO("close:\nfd:%d\ncount:%d\nlatencies:%lld ms", fd, read_latencies.size(), total_latencies);
 
   return 0; 
 }
