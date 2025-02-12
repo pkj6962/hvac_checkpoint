@@ -11,24 +11,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "hvac_internal.h"
-
-enum class TaskType
-{
-    OPEN,
-    WRITE,
-    // LSEEK,
-    CLOSE
-};
-
-struct ClientTask
-{
-    TaskType type;
-    int remote_fd;
-    int local_fd;
-    std::string dram_file_path;
-    int path_hash;
-    size_t count;
-};
+#include "hvac_write_data_mover.h"
 
 static bool stop_write_worker_thread = false;
 static std::thread write_worker_thread;
