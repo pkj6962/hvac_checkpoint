@@ -309,7 +309,7 @@ int WRAP_DECL(close)(int fd)
 		L4C_INFO("Checkpoint latency for file %s: %lld", 
 			path, total_microseconds);
 	}
-	
+	hvac_close_write(fd);
 	return ret;
 }
 
@@ -424,12 +424,10 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
         // Handle caching logic here
         
         // Logic for DRAM Write 
-
-
-		/*
 		ssize_t cached_write = hvac_dram_write(fd, buf, count); 
-		*/        
-        ssize_t cached_write = hvac_cache_write(fd, buf, count);
+		// Farid (Note to Junghwan):
+		// The line below is called by the background thread
+        // ssize_t cached_write = hvac_cache_write(fd, buf, count);
         if (cached_write > 0) {
 			// TODO-JH: 디버깅 목적으로 끄고 항상 real_write 호출하게 할 수 있어  
 			gettimeofday(&end, NULL); 

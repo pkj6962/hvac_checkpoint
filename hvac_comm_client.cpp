@@ -37,6 +37,7 @@ ssize_t read_ret = -1;
 /* Mercury Data Caching */
 std::map<int, std::string> address_cache;
 extern std::map<int, int> fd_redir_map;
+extern std::map<int, int> write_fd_redir_map;
 
 /* for Fault tolerance */
 std::vector<int> timeout_counters;
@@ -88,6 +89,11 @@ hvac_open_cb(const struct hg_cb_info *info)
   HG_Get_output(info->info.forward.handle, &out);
   gettimeofday(&log_info.clocktime, NULL);
   fd_redir_map[hvac_open_state_p->local_fd] = out.ret_status;
+  // Farid (Note for Junghwan):
+  // This logic assumes that the remote_open is called for all files inside 
+  // hvac_track_file like in the original code. If we want to speed up the write, 
+  // we can move the RPC for open to the hvac_write_data_mover.cpp file.
+  enqueue_open_task(hvac_open_state_p->local_fd, out.ret_status);
   //	L4C_INFO("Open RPC Returned FD %d\n",out.ret_status);
 
   // sy: add - logging code
@@ -517,7 +523,10 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *
   hvac_rpc_state_p->offset = offset;    // sy: add
 
   in.input_val = count;
-  in.accessfd = fd_redir_map[localfd];
+  // in.accessfd = fd_redir_map[localfd];
+  // Farid (Note for Junghwan):
+  // To avoid using an updated redirection from fd_redir_map
+  in.accessfd = write_fd_redir_map[localfd];
   in.localfd = localfd;
   in.offset = offset;
   in.client_rank = client_rank;

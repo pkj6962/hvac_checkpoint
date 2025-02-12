@@ -394,7 +394,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   // TODO: 체크포인트 매니저 - 백그라운드 쓰레드로 전환
   // checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
-  // writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
+  writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
   // L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
 
 
@@ -628,7 +628,7 @@ hvac_open_rpc_handler(hg_handle_t handle)
       if ((in.flag & O_ACCMODE) == O_WRONLY)
       {  
         // 버스트버퍼 패스에 저장하지 않아 
-        // redir_path = hvac_get_bbpath(redir_path);
+        redir_path = hvac_get_bbpath(redir_path);
         pthread_mutex_lock(&path_map_mutex);
         path_cache_map[in.path] = redir_path;
         pthread_mutex_unlock(&path_map_mutex);

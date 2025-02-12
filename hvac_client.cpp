@@ -11,6 +11,7 @@
 #include "hvac_logging.h"
 #include "hvac_comm.h"
 #include "hvac_hashing.h"
+#include "hvac_write_data_mover.h"
 
 #define VIRTUAL_NODE_CNT 100
 
@@ -90,6 +91,9 @@ static void __attribute__((constructor)) hvac_client_init()
 
   hvac_get_addr();
   L4C_INFO("5");
+
+  // Farid: this must be run only once
+  start_background_worker();
 
   g_hvac_initialized = true;
   pthread_mutex_unlock(&init_mutex);
@@ -273,18 +277,24 @@ ssize_t hvac_dram_write(int fd, const void *buf, size_t count)
   const char *_drampath = hvac_fetch_path(dramfd);
   string drampath = string(_drampath);
   off_t offset = fd_to_offset[dramfd] - byteswritten;
-
-  // enqueue_task_queue(drampath, offset, count);
+  // Junghwan TODO: the path_hash should be calculated from the original path of the file
+  // in order to keep the hashing consistent.
+  int path_hash = std::hash<std::string>{}(fd_map[fd]);
+  
+  enqueue_write_task(drampath, path_hash, fd, count);
 }
 
-ssize_t hvac_cache_write(int fd, const void *buf, size_t count)
+ssize_t hvac_cache_write(int fd, int path_hash, const void *buf, size_t count)
 {
   // TODO: revisit this for fault tolerance in case of unexpected behavior
   ssize_t bytes_written = -1;
 
   if (hvac_file_tracked(fd))
   {
-    std::string filepath = fd_map[fd];
+    // Farid (Note for Junghwan):
+    // This filepath should not be used, as it fd_map might have been modified by this point.
+    // Instead we should use the path_hash provided earlier for the queued task.
+    // std::string filepath = fd_map[fd];
 
     hg_bool_t done = HG_FALSE;
     pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -520,6 +530,12 @@ ssize_t hvac_remote_lseek(int fd, off64_t offset, int whence)
   }
   /* Non-HVAC Reads come from base */
   return bytes_lseek;
+}
+
+// Farid (Note for Junghwan):
+// We must make sure that the enqueue_close_task is called before the next hvac_open_cb
+void hvac_close_write(int fd) {
+  enqueue_close_task(fd);
 }
 
 void hvac_remote_close(int fd)
