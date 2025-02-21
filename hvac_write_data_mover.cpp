@@ -15,12 +15,13 @@
 
 static bool stop_write_worker_thread = false;
 static std::thread write_worker_thread;
-static std::queue<ClientTask> write_task_queue;
+static std::queue<ClientTask> write_task_queue; // 백그라운드 쓰레드 및 메인 클라이언트 루틴 간 공유자료구조
 static std::mutex write_task_queue_mutex;
 static std::condition_variable write_task_queue_cv;
 static std::map<int, int> write_fd_redir_map;
-static std::map<int, std::string> write_fd_map;
-static std::map<int, int> write_read_fd_map;
+static std::map<int, std::string> write_fd_map; // Not used 
+static std::map<int, int> write_read_fd_map; // Global FD -> DRAM FD
+
 
 static void worker_thread_function()
 {
@@ -40,21 +41,21 @@ static void worker_thread_function()
         {
         case TaskType::OPEN:
         {
-            write_fd_redir_map[task.local_fd] = task.remote_fd;
+            write_fd_redir_map[task.local_fd] = task.remote_fd; // 글로벌 fd와 Remote Fd 매핑
             break;
         }
         case TaskType::WRITE:
         {
-            auto l_read_fd = write_read_fd_map.find(task.local_fd);
-            int local_read_fd;
-            if (l_read_fd == write_read_fd_map.end())
+            auto l_read_fd = write_read_fd_map.find(task.local_fd); // Global FD로부터 DRAM FD 추출
+            int local_read_fd; // DRAMFS 파일 
+            if (l_read_fd == write_read_fd_map.end()) // 첫번째 파일 쓰기 요청 
             {
-                local_read_fd = open(task.dram_file_path.c_str(), O_RDONLY);
-                write_read_fd_map[task.local_fd] = local_read_fd;
+                local_read_fd = open(task.dram_file_path.c_str(), O_RDONLY); 
+                write_read_fd_map[task.local_fd] = local_read_fd; // GlobalFD와 DRAM FD 매핑 
             }
 
             else
-                local_read_fd = l_read_fd->second;
+                local_read_fd = l_read_fd->second; 
 
             if (local_read_fd == -1)
             {
@@ -62,8 +63,8 @@ static void worker_thread_function()
                 break;
             }
 
-            std::vector<char> temp_buffer(task.count);
-            ssize_t bytes_read = read(local_read_fd, temp_buffer.data(), task.count);
+            std::vector<char> temp_buffer(task.count); // 최적화 가능 여부 검토 필요
+            ssize_t bytes_read = read(local_read_fd, temp_buffer.data(), task.count); // DRAM 파일 읽기 
 
             if (bytes_read < 0)
             {
@@ -76,9 +77,8 @@ static void worker_thread_function()
                 break;
             }
 
-            ssize_t result = hvac_cache_write(task.local_fd, task.path_hash, temp_buffer.data(), bytes_read);
+            ssize_t result = hvac_cache_write(task.local_fd, task.path_hash, temp_buffer.data(), bytes_read); // DRAM 파일 데이터를 Remote NVMe로 복사 
             if (result < 0)
-
             {
                 // TODO: add error handling and logging
                 break;
@@ -87,9 +87,9 @@ static void worker_thread_function()
         }
         case TaskType::CLOSE:
         {
-            auto l_read_fd = write_read_fd_map.find(task.local_fd);
+            auto l_read_fd = write_read_fd_map.find(task.local_fd); 
             if (l_read_fd != write_read_fd_map.end())
-                close(l_read_fd->second);
+                close(l_read_fd->second); // DRAM 파일 닫기
             write_fd_redir_map.erase(task.local_fd);
             break;
         }

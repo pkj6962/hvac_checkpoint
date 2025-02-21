@@ -123,7 +123,6 @@ void initialize_hash_ring(int serverCount, int vnodes)
 }
 
 // New version of HVAC_TRACK_FILE
-
 bool hvac_track_file(const char *path, int flags, int fd)
 {
   if (strstr(path, ".ports.cfg.") != NULL)
@@ -307,12 +306,15 @@ ssize_t hvac_cache_write(int fd, int path_hash, const void *buf, size_t count)
     hvac_rpc_state_p->mutex = &mutex;
 
     // Generate the write RPC request.
-    // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
-    // int current_host = atoi(getenv("PMI_RANK"));
-    int current_host = atoi(getenv("RANK"));
-    // int current_host = atoi(getenv("MPI_RANK"));
+    // AS IS: Send request to local server 
+    // TO be: Send request to remote NVMe server 
 
-    int host = current_host / hvac_client_per_node;
+    // int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
+    int host = path_hash % g_hvac_server_count; 
+    // int current_host = atoi(getenv("PMI_RANK"));
+    // int current_host = atoi(getenv("MPI_RANK"));
+    // int current_host = atoi(getenv("RANK"));
+    // int host = current_host / hvac_client_per_node;
     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
 
     // Wait for the server to process the write request.
