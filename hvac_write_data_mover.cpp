@@ -9,7 +9,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+
 #include <sys/types.h>
+
 #include "hvac_internal.h"
 #include "hvac_write_data_mover.h"
 
@@ -18,7 +20,8 @@ static std::thread write_worker_thread;
 static std::queue<ClientTask> write_task_queue; // 백그라운드 쓰레드 및 메인 클라이언트 루틴 간 공유자료구조
 static std::mutex write_task_queue_mutex;
 static std::condition_variable write_task_queue_cv;
-static std::map<int, int> write_fd_redir_map;
+// static std::map<int, int> write_fd_redir_map;
+std::map<int, int> write_fd_redir_map;
 static std::map<int, std::string> write_fd_map; // Not used 
 static std::map<int, int> write_read_fd_map; // Global FD -> DRAM FD
 

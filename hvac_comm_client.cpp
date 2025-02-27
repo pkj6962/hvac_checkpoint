@@ -9,6 +9,7 @@
 
 #include "hvac_comm.h"
 #include "hvac_data_mover_internal.h"
+#include "hvac_write_data_mover.h"
 // #include "checkpoint_manager.h"
 
 extern "C"

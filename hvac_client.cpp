@@ -6,6 +6,8 @@
 #include <iostream>
 #include <assert.h>
 #include <mutex>
+#include <unistd.h> 
+#include <sys/stat.h>
 
 #include "hvac_internal.h"
 #include "hvac_logging.h"
@@ -37,6 +39,9 @@ std::map<int, int> fd_to_dramfd;
 const int TIMEOUT_LIMIT = 3;
 HashRing<string, string> *hashRing; // ptr to the consistent hashing object
 vector<bool> failure_flags;
+static void initialize_real_functions(); 
+
+
 
 /* Devise a way to safely call this and initialize early */
 static void __attribute__((constructor)) hvac_client_init()
@@ -92,6 +97,8 @@ static void __attribute__((constructor)) hvac_client_init()
   hvac_get_addr();
   L4C_INFO("5");
 
+  initialize_real_functions();
+
   // Farid: this must be run only once
   start_background_worker();
 
@@ -107,6 +114,41 @@ static void __attribute((destructor)) hvac_client_shutdown()
 {
   hvac_shutdown_comm();
   delete hashRing;
+}
+
+#include <dlfcn.h>
+
+FILE* (*__real_fopen)(const char *, const char *) = nullptr;
+FILE* (*__real_fopen64)(const char *, const char *) = nullptr;
+ssize_t (*__real_pread)(int, void *, size_t, off_t) = nullptr;
+ssize_t (*__real_readv)(int, const struct iovec *, int) = nullptr;
+ssize_t (*__real_write)(int, const void *, size_t) = nullptr;
+int (*__real_open)(const char *, int, ...) = nullptr;
+int (*__real_open64)(const char *, int, ...) = nullptr;
+ssize_t (*__real_read)(int, void *, size_t) = nullptr;
+ssize_t (*__real_read64)(int, void *, size_t) = nullptr;
+int (*__real_close)(int) = nullptr;
+off_t (*__real_lseek)(int, off_t, int) = nullptr;
+off64_t (*__real_lseek64)(int, off64_t, int) = nullptr;
+
+static void initialize_real_functions() {
+    __real_fopen = (FILE* (*)(const char*, const char*)) dlsym(RTLD_NEXT, "fopen");
+    __real_fopen64 = (FILE* (*)(const char*, const char*)) dlsym(RTLD_NEXT, "fopen64");
+    __real_pread = (ssize_t (*)(int, void*, size_t, off_t)) dlsym(RTLD_NEXT, "pread");
+    __real_readv = (ssize_t (*)(int, const struct iovec*, int)) dlsym(RTLD_NEXT, "readv");
+    __real_write = (ssize_t (*)(int, const void*, size_t)) dlsym(RTLD_NEXT, "write");
+    __real_open = (int (*)(const char*, int, ...)) dlsym(RTLD_NEXT, "open");
+    __real_open64 = (int (*)(const char*, int, ...)) dlsym(RTLD_NEXT, "open64");
+    __real_read = (ssize_t (*)(int, void*, size_t)) dlsym(RTLD_NEXT, "read");
+    __real_read64 = (ssize_t (*)(int, void*, size_t)) dlsym(RTLD_NEXT, "read64");
+    __real_close = (int (*)(int)) dlsym(RTLD_NEXT, "close");
+    __real_lseek = (off_t (*)(int, off_t, int)) dlsym(RTLD_NEXT, "lseek");
+    __real_lseek64 = (off64_t (*)(int, off64_t, int)) dlsym(RTLD_NEXT, "lseek64");
+
+    if (!__real_fopen || !__real_write || !__real_read || !__real_open) {
+        fprintf(stderr, "HVAC ERROR: Failed to load system calls via dlsym\n");
+        exit(1);
+    }
 }
 
 // sy: add. initialization function for hash ring & timeout counter
@@ -204,10 +246,35 @@ bool hvac_track_file(const char *path, int flags, int fd)
           tracked = true;
 
           // logic for DRAMFS WRITE
-          string drampath = hvac_get_drampath(ppath);
-          int dramfd = open(drampath.c_str(), O_WRONLY);
-          fd_to_dramfd[fd] = dramfd;
-          fd_to_offset[dramfd] = 0;
+          // string drampath = hvac_get_drampath(ppath);
+          string drampath = hvac_get_drampath(path);
+          L4C_INFO("drampath in hvac_track_file: %s", drampath.c_str());
+          
+          struct stat fd_stat; 
+          if(fstat(fd, &fd_stat) !=0)
+          {
+            L4C_FATAL("fstat failed"); 
+            exit(1); 
+          }
+
+          if (S_ISDIR(fd_stat.st_mode))
+          {
+            L4C_INFO("Directory: %s", drampath.c_str()); 
+            if (mkdir(drampath.c_str(), 0775) == 0)
+            {
+              L4C_FATAL("directory creation failed"); 
+              exit(1); 
+            };
+          }
+          /*
+          디렉토리인 경우 디렉토리 생성
+          */
+          else{
+            int dramfd = open(drampath.c_str(), O_WRONLY | O_CREAT, 0644); 
+            L4C_INFO("DRAMFD IN HVAC_TRACK_FILE: %d %d", dramfd, errno); 
+            fd_to_dramfd[fd] = dramfd;
+            fd_to_offset[dramfd] = 0;
+          }
         }
       }
     }
@@ -263,24 +330,32 @@ bool hvac_track_file(const char *path, int flags, int fd)
 
 ssize_t hvac_dram_write(int fd, const void *buf, size_t count)
 {
+  L4C_INFO("a1");
   int dramfd = fd_to_dramfd[fd];
+  // ssize_t byteswritten = 0;
   ssize_t byteswritten = write(dramfd, buf, count);
-  if (byteswritten > 0)
+  if (byteswritten < 0)
   {
-    L4C_FATAL("Dram write failed");
-    exit(-1);
+    L4C_FATAL("Dram write failed %d %d", dramfd, errno);
+    // exit(-1);
   }
-  assert(byteswritten == count);
+  L4C_INFO("a2");
+  // assert(byteswritten == count);
   fd_to_offset[dramfd] += byteswritten;
 
+  L4C_INFO("dramfd: %d", dramfd);
   const char *_drampath = hvac_fetch_path(dramfd);
+  L4C_INFO("drampath: %s", _drampath);
+
   string drampath = string(_drampath);
   off_t offset = fd_to_offset[dramfd] - byteswritten;
   // Junghwan TODO: the path_hash should be calculated from the original path of the file
   // in order to keep the hashing consistent.
   int path_hash = std::hash<std::string>{}(fd_map[fd]);
-  
+  L4C_INFO("a3");
   enqueue_write_task(drampath, path_hash, fd, count);
+  L4C_INFO("a4");
+  return byteswritten; 
 }
 
 ssize_t hvac_cache_write(int fd, int path_hash, const void *buf, size_t count)
@@ -506,7 +581,7 @@ ssize_t hvac_remote_lseek(int fd, off64_t offset, int whence)
       // fd_to_offset[fd] = meta.size + offset;
       // We should set offset in further write as much as not only bytes written but also offset increased this time.
     }
-    L4C_INFO("lseek:  %lld %lld", offset, fd_to_offset[fd]); // (파일:오프셋: (fd, offset, whence)
+    // L4C_INFO("lseek:  %lld %lld", offset, fd_to_offset[fd]); // (파일:오프셋: (fd, offset, whence)
     return fd_to_offset[fd];
 
     // 자체 hvac_rpc_state_t 자료구조 선언
@@ -642,10 +717,12 @@ int hvac_extract_rank(const char *file_path)
 const char *
 hvac_fetch_path(int fd)
 {
-  char path[PATH_MAX];
+  char *path = new char[PATH_MAX];
   char fd_path[PATH_MAX];
 
   snprintf(fd_path, sizeof(fd_path), "/proc/self/fd/%d", fd);
   ssize_t len = readlink(fd_path, path, sizeof(path) - 1);
+  // L4C_INFO("drampath: %s", path);
+  
   return path;
 }

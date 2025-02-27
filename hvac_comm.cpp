@@ -904,10 +904,12 @@ hvac_get_drampath(string path)
   {
     L4C_ERR("Set DRAMFS PATH Prior to using HVAC");
   }
-  string dramfs_path = string(getenv("DRAMFSPATH")) + "/XXXXXX";
+  // string dramfs_path = string(getenv("DRAMFSPATH")) + "/XXXXXX";
+  string dramfs_path = string(getenv("DRAMFSPATH"));
+  // 랜덤 디렉토리 생성 취소 
   char *newdir = (char *)malloc(strlen(dramfs_path.c_str()) + 1);
   strcpy(newdir, dramfs_path.c_str());
-  mkdtemp(newdir);
+  // mkdtemp(newdir);
   string dirpath = newdir;
 
   filesystem::path filepath = path;

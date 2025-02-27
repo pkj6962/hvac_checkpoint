@@ -249,8 +249,6 @@ int WRAP_DECL(open64)(const char *pathname, int flags, ...)
 	{
 		checkpoint_fd = ret; 
 	} 
-
-
 	return ret;
 }
 

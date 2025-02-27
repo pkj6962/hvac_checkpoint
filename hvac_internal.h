@@ -26,7 +26,8 @@
 #ifdef HVAC_PRELOAD
 
 #define REAL_DECL(func,ret,args) \
-    ret (*__real_ ## func)args;
+    extern ret (*__real_ ## func)args;
+// ret (*__real_ ## func)args;
 
 #define WRAP_DECL(__name) __name
 
@@ -75,10 +76,8 @@ FILE *WRAP_DECL(fopen)(const char *path, const char *mode);
 REAL_DECL(pwrite, ssize_t, (int fd, const void *buf, size_t count, off_t offset))
 extern ssize_t WRAP_DECL(pwrite)(int fd, const void *buf, size_t count, off_t offset);
 
-
-
-
 #endif
+
 
 REAL_DECL(fopen, FILE *, (const char *path, const char *mode)) 
 FILE *WRAP_DECL(fopen)(const char *path, const char *mode);
@@ -135,14 +134,16 @@ extern int WRAP_DECL(fsync)(int fd);
 REAL_DECL(fdatasync, int, (int fd));
 extern int WRAP_DECL(fdatasync)(int fd);
 
-
 #endif
+
+
 /* HVAC Internal API */
 #ifdef __cplusplus
 extern "C" bool hvac_track_file(const char* path, int flags, int fd);
 extern "C" const char * hvac_get_path(int fd);
 extern "C" bool  hvac_remove_fd(int fd);
 extern "C" ssize_t hvac_cache_write(int fd, int path_hash, const void *buf, size_t count);
+extern "C" ssize_t hvac_dram_write(int fd, const void *buf, size_t count);
 extern "C" ssize_t hvac_remote_read(int fd, void *buf, size_t count);
 extern "C" ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offset);
 extern "C" ssize_t hvac_remote_lseek(int fd, off64_t offset, int whence);
@@ -152,9 +153,6 @@ extern "C" bool hvac_file_tracked(int fd);
 
 // JH added
 extern "C" int hvac_extract_rank(const char* file_path); 
-
-
-
 #endif
 
 extern bool hvac_track_file(const char* path, int flags, int fd);
@@ -163,6 +161,7 @@ extern const char * hvac_fetch_path(int fd);
 // extern string hvac_get_bbpath(string path); 
 extern bool  hvac_remove_fd(int fd);
 extern ssize_t hvac_cache_write(int fd, int path_hash, const void *buf, size_t count);
+extern ssize_t hvac_dram_write(int fd, const void *buf, size_t count);
 extern ssize_t hvac_remote_read(int fd, void *buf, size_t count);
 extern ssize_t hvac_remote_pread(int fd, void *buf, size_t count, off_t offset);
 // extern ssize_t hvac_remote_lseek(int fd, off_t offset, int whence);
@@ -173,6 +172,8 @@ extern bool hvac_file_tracked(int fd);
 
 // // JH added
 // extern int hvac_extract_rank(const char* file_path); 
+
+
 
 
 #endif
