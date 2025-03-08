@@ -532,7 +532,6 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *
   in.offset = offset;
   in.client_rank = client_rank;
   hvac_rpc_state_p->svr_hash = svr_hash;
-
   ret = HG_Forward(hvac_rpc_state_p->handle, hvac_write_cb, hvac_rpc_state_p, &in);
   assert(ret == 0);
 
@@ -593,9 +592,7 @@ void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer,
   
 
   // 서버로 잘 송신됐는지 로그 
-  L4C_INFO("a1"); 
   ret = HG_Forward(hvac_rpc_state_p->handle, hvac_read_cb, hvac_rpc_state_p, &in);
-  L4C_INFO("a2");
   assert(ret == 0);
 
   hvac_comm_free_addr(svr_addr);
@@ -695,7 +692,7 @@ void hvac_get_addr()
 
     extract_ip_portion(addr_buffer, client_address, sizeof(client_address));
 
-    const char *rank_str = getenv("HOROVOD_RANK");
+    const char *rank_str = getenv("PMI_RANK");
     client_rank = (rank_str != NULL) ? atoi(rank_str) : -1;
   }
 }

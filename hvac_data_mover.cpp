@@ -178,7 +178,7 @@ void* hvac_flush_fn(void *args)
         ssize_t bytes_written = write(entry.fd, entry.buf, entry.size); 
         if (bytes_written == -1)
         {
-          L4C_FATAL("write failed on pfs flush function"); 
+          L4C_FATAL("write failed on pfs flush function (errno: %d)", errno); 
         }
         else
         {          

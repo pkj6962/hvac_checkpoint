@@ -265,31 +265,31 @@ int WRAP_DECL(close)(int fd)
 	MAP_OR_FAIL(close);
 	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
 
-	// const char *path = hvac_get_path(fd);
-	// if (path)
-	// {
-	// 	L4C_INFO("Close to file %s",path);
-	// 	hvac_remove_fd(fd);
+	const char *path = hvac_get_path(fd);
+	if (path)
+	{
+		L4C_INFO("Close to file %s",path);
+		hvac_remove_fd(fd);
 
-	// 	// Debug
-	// 	L4C_INFO("Elapsed time\t%ld microseconds for %s\n", write_latencies, hvac_get_path(fd));
-
-
-	// 	gettimeofday(&end, NULL); 
-	// 	// Debug: 시간 차이 계산 (microsecond 단위)
-	// 	long seconds = end.tv_sec - start.tv_sec;
-	// 	long microseconds = end.tv_usec - start.tv_usec;
-	// 	long total_microseconds = seconds * 1000000 + microseconds;
-	// 	L4C_INFO("Close latency: %lld", total_microseconds);
-	// }
-	//L4C_INFO("Close - path: %s", path); 
+		// Debug
+		// L4C_INFO("Elapsed time\t%ld microseconds for %s\n", write_latencies, hvac_get_path(fd));
 
 
-	char path[PATH_MAX];
+		// gettimeofday(&end, NULL); 
+		// // Debug: 시간 차이 계산 (microsecond 단위)
+		// long seconds = end.tv_sec - start.tv_sec;
+		// long microseconds = end.tv_usec - start.tv_usec;
+		// long total_microseconds = seconds * 1000000 + microseconds;
+		// L4C_INFO("Close latency: %lld", total_microseconds);
+	}
+	// L4C_INFO("Close - path: %s", path); 
+
+
+	char file_path[PATH_MAX];
     char fd_path[PATH_MAX];
 
     snprintf(fd_path, sizeof(fd_path), "/proc/self/fd/%d", fd);
-    ssize_t len = readlink(fd_path, path, sizeof(path) - 1);
+    ssize_t len = readlink(fd_path, file_path, sizeof(file_path) - 1);
     
 	if ((ret = __real_close(fd)) != 0)
 	{
@@ -297,7 +297,7 @@ int WRAP_DECL(close)(int fd)
 		return ret;
 	}
  
-	if (strstr(path, hvac_checkpoint_dir) != NULL)
+	if (strstr(file_path, hvac_checkpoint_dir) != NULL)
 	{
 		gettimeofday(&checkpoint_end, NULL); 
 		// Debug: 시간 차이 계산 (microsecond 단위)
@@ -305,70 +305,68 @@ int WRAP_DECL(close)(int fd)
 		long microseconds = checkpoint_end.tv_usec - checkpoint_start.tv_usec;
 		long total_microseconds = seconds * 1000000 + microseconds;
 		L4C_INFO("Checkpoint latency for file %s: %lld", 
-			path, total_microseconds);
+			file_path, total_microseconds);
 	}
-	hvac_close_write(fd);
+	// hvac_close_write(fd);
 	return ret;
 }
 
-// ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
-// {
-// 	int ret = -1;
+ssize_t WRAP_DECL(read)(int fd, void *buf, size_t count)
+{
+	int ret = -1;
 	
-// 	//remove me
-//     MAP_OR_FAIL(read);	
+	//remove me
+    MAP_OR_FAIL(read);	
 	
-//     const char *path = hvac_get_path(fd);
+    const char *path = hvac_get_path(fd);
 
-// 	ret = hvac_remote_read(fd,buf,count);
+	ret = hvac_remote_read(fd,buf,count);
 
-//     //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
+    //L4C_INFO("Read - path: %s, ret: %d", path, ret); 
 	
-// 	if (path)
-//     {
-//         L4C_INFO("Read to file %s of size %ld returning %lld bytes",path,count,ret);
-//     }
+	if (path)
+    {
+        L4C_INFO("Read to file %s of size %ld returning %lld bytes",path,count,ret);
+    }
 	
-// 	if (ret < 0)
-// 	{
-// 		ret = __real_read(fd,buf,count);			
-// 	}
+	if (ret < 0)
+	{
+		ret = __real_read(fd,buf,count);			
+	}
 		
-//     return ret;
-// }
+    return ret;
+}
 
 
+ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
+{
+	ssize_t ret = -1;
+	MAP_OR_FAIL(pread);
 
+	const char *path = hvac_get_path(fd);
+	// L4C_INFO("Pread - path: %s", path); 
 
-// ssize_t WRAP_DECL(pread)(int fd, void *buf, size_t count, off_t offset)
-// {
-// 	ssize_t ret = -1;
-// 	MAP_OR_FAIL(pread);
-
-// 	const char *path = hvac_get_path(fd);
-// 	L4C_INFO("Pread - path: %s", path); 
-
-// 	if (path)
-// 	{                
-// 		L4C_INFO("pread to tracked file %s",path);
+	if (path)
+	{                
+		L4C_INFO("pread to tracked file %s",path);
 		
-// //		memset(buf, 0, count);
-// 		ret = hvac_remote_pread(fd, buf, count, offset);
+//		memset(buf, 0, count);
+		ret = hvac_remote_pread(fd, buf, count, offset);
 
-// 		if(ret < 0){
+		if(ret < 0){
 			
-// 			L4C_INFO("remote pread_error returned %s",path);
-// 			ret = __real_pread(fd,buf,count,offset);
-// 			L4C_INFO("readbytes %d\n", ret);
-// 		}
-// 	}
-// 	else
-// 	{
-// 		ret = __real_pread(fd,buf,count,offset);
-// 	}
+			L4C_INFO("remote pread_error returned %s",path);
+			ret = __real_pread(fd,buf,count,offset);
+			L4C_INFO("readbytes %d\n", ret);
+		}
+	}
+	else
+	{
+		ret = __real_pread(fd,buf,count,offset);
+	}
 
-// 	return ret;
-// }
+	return ret;
+}
 
 
 
@@ -421,7 +419,7 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
     if (path) {
         // Handle caching logic here
         
-        // Logic for DRAM Write 
+        // Logic for G
 		ssize_t cached_write = hvac_dram_write(fd, buf, count); 
 		// Farid (Note to Junghwan):
 		// The line below is called by the background thread
@@ -434,7 +432,6 @@ ssize_t WRAP_DECL(write)(int fd, const void *buf, size_t count)
 			long microseconds = end.tv_usec - start.tv_usec;
 			long total_microseconds = seconds * 1000000 + microseconds;
 			write_latencies += total_microseconds; 
-
             return cached_write;  // Successfully written to cache
         }
     }

@@ -358,13 +358,6 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
 
   out.ret = 0;
   // Debug:클라이언트(응용)에게 bytes_written을 전달... 전달하면 Filesystem에 파일 안써져
-  out.ret = hvac_rpc_state_p->size; 
-  ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out);
-  assert(ret == HG_SUCCESS);
-
-  // L4C_INFO("Info server: Freeing Bulk Handle");
-  HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
-  HG_Destroy(hvac_rpc_state_p->handle);
 
   int access_fd = hvac_rpc_state_p->in.accessfd;
   ssize_t writebytes = -1;
@@ -388,18 +381,25 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   L4C_INFO("fd %d was inserted into flush queue(size: %lld)", access_fd, hvac_rpc_state_p->size); 
 
   
-
-
   // checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
   // TODO: 체크포인트 매니저 - 백그라운드 쓰레드로 전환
   // checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
   writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-  // L4C_INFO("size: %lld  |  buffer: %s", hvac_rpc_state_p->size, hvac_rpc_state_p->buffer);
+  L4C_INFO("%lld %lld", writebytes, hvac_rpc_state_p->size);
 
 
   // TODO: Comment Out - PFS FLush Thread에서 해제
   // free(hvac_rpc_state_p->buffer);
+
+
+  out.ret = hvac_rpc_state_p->size; 
+  ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out);
+  assert(ret == HG_SUCCESS);
+
+  // L4C_INFO("Info server: Freeing Bulk Handle");
+  HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
+  HG_Destroy(hvac_rpc_state_p->handle);
   free(hvac_rpc_state_p);
   return HG_SUCCESS;
 }
@@ -479,7 +479,6 @@ hvac_rpc_handler(hg_handle_t handle)
   {
     if (hvac_rpc_state_p->in.accessfd >= -1)
     {
-
       readbytes = pread(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset);
       L4C_INFO("Server Rank %d : PRead %ld bytes from file %s at offset %ld", server_rank, readbytes, fd_to_path[hvac_rpc_state_p->in.accessfd].c_str(), hvac_rpc_state_p->in.offset);
       if (readbytes < 0)
@@ -499,6 +498,7 @@ hvac_rpc_handler(hg_handle_t handle)
     // remote_fd가 -2 이하인 경우, checkpoint 읽기 요청 
     else if (hvac_rpc_state_p->in.accessfd <= -2)
     {
+      
       readbytes = checkpoint_manager.read_checkpoint(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, hvac_rpc_state_p->in.offset); 
       if (readbytes == -1)
       {
@@ -648,8 +648,19 @@ hvac_open_rpc_handler(hg_handle_t handle)
       */
       else if ((in.flag & O_ACCMODE) == O_RDONLY)
       {
-        out.ret_status = checkpoint_manager.open_checkpoint(redir_path, in.flag); 
-        L4C_INFO("%s is opened in RDONLY mode: %d", redir_path.c_str(), out.ret_status);
+        // out.ret_status = checkpoint_manager.open_checkpoint(redir_path, in.flag); 
+        // L4C_INFO("%s is opened in RDONLY mode: %d", redir_path.c_str(), out.ret_status);
+    
+        // Recovery from DRAMFS 
+        redir_path = hvac_get_drampath(in.path); 
+        out.ret_status = open(redir_path.c_str(), O_RDONLY); 
+        if (out.ret_status < 0)
+        {
+          L4C_FATAL("DRAMFS File %s read failed: %d", redir_path.c_str(), errno); 
+        
+        }
+        else
+          L4C_INFO("Server %d opened file %s: %d", server_rank, redir_path.c_str(), out.ret_status);
       }
    
     }  
