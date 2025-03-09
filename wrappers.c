@@ -261,6 +261,10 @@ int WRAP_DECL(close)(int fd)
 	struct timeval start, end; 
 	gettimeofday(&start, NULL); 
 
+	int flag = fcntl(fd, F_GETFL); 
+	int access_mode = flag & O_ACCMODE; 
+
+
 	/* Check if hvac data has been initialized? Can we possibly hit a close call before an open call? */
 	MAP_OR_FAIL(close);
 	if (g_disable_redirect || tl_disable_redirect) return __real_close(fd);
@@ -275,28 +279,25 @@ int WRAP_DECL(close)(int fd)
 		// L4C_INFO("Elapsed time\t%ld microseconds for %s\n", write_latencies, hvac_get_path(fd));
 
 
-		// gettimeofday(&end, NULL); 
-		// // Debug: 시간 차이 계산 (microsecond 단위)
-		// long seconds = end.tv_sec - start.tv_sec;
-		// long microseconds = end.tv_usec - start.tv_usec;
-		// long total_microseconds = seconds * 1000000 + microseconds;
-		// L4C_INFO("Close latency: %lld", total_microseconds);
+		gettimeofday(&end, NULL); 
+		// Debug: 시간 차이 계산 (microsecond 단위)
+		long seconds = end.tv_sec - start.tv_sec;
+		long microseconds = end.tv_usec - start.tv_usec;
+		long total_microseconds = seconds * 1000000 + microseconds;
+		L4C_INFO("Close latency: %lld", total_microseconds);
+		
+		if (access_mode == O_WRONLY)
+			return ret; 
 	}
 	// L4C_INFO("Close - path: %s", path); 
-
-
+	/*
 	char file_path[PATH_MAX];
     char fd_path[PATH_MAX];
 
     snprintf(fd_path, sizeof(fd_path), "/proc/self/fd/%d", fd);
     ssize_t len = readlink(fd_path, file_path, sizeof(file_path) - 1);
     
-	if ((ret = __real_close(fd)) != 0)
-	{
-		L4C_PERROR("Error from close");
-		return ret;
-	}
- 
+
 	if (strstr(file_path, hvac_checkpoint_dir) != NULL)
 	{
 		gettimeofday(&checkpoint_end, NULL); 
@@ -306,6 +307,18 @@ int WRAP_DECL(close)(int fd)
 		long total_microseconds = seconds * 1000000 + microseconds;
 		L4C_INFO("Checkpoint latency for file %s: %lld", 
 			file_path, total_microseconds);
+	}
+	*/
+	// if (path && access_mode == O_WRONLY)
+	// {
+	// 	// if it is checkpoint write, then we don't call real_close at this moment. 
+	// 	return; 
+	// }
+
+	if ((ret = __real_close(fd)) != 0)
+	{
+		L4C_PERROR("Error from close");
+		return ret;
 	}
 	// hvac_close_write(fd);
 	return ret;

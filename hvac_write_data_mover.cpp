@@ -68,7 +68,6 @@ static void* worker_thread_function(void* arg)
             {
                 local_read_fd = l_read_fd->second;
             }
-
             if (local_read_fd == -1)
             {
                 // TODO: Add error logging
@@ -90,7 +89,6 @@ static void* worker_thread_function(void* arg)
             {
                 break;
             }
-
             // L4C_INFO("A3: worker thread: processing write task");
             ssize_t result = hvac_cache_write(task.local_fd, task.path_hash, temp_buffer.data(), bytes_read);
             if (result < 0)
@@ -103,17 +101,19 @@ static void* worker_thread_function(void* arg)
         }
         case TaskType::CLOSE:
         {
+            L4C_INFO("CLOSE TASK IS BEING HANDLED");
             auto l_read_fd = write_read_fd_map.find(task.local_fd); 
             if (l_read_fd != write_read_fd_map.end())
                 close(l_read_fd->second);
-            write_fd_redir_map.erase(task.local_fd);
+            // It is done in close_gen_rpc 
+            // write_fd_redir_map.erase(task.local_fd); 
+            hvac_remote_close(task.local_fd); 
 
-
-            
             break;
         }
         }
     }
+    L4C_INFO("worker thread stops working");
     return nullptr;
 }
 

@@ -23,10 +23,11 @@ static int hvac_server_rank = -1;
 static int server_rank = -1;
 static string hvac_data_dir;
 static string hvac_checkpoint_dir;
-
 char server_addr_str[128];
 
 vector <long long> latencies;
+struct timeval replica_start, replica_end; 
+
 
 
 CheckpointManager checkpoint_manager;
@@ -374,11 +375,11 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   // flush_queue에 삽입 
   // 삽입 전후 뮤텍스 lock 및 signal 전송 
 
-  pthread_mutex_lock(&flush_mutex);
-  flush_queue.push(entry);
-  pthread_cond_signal(&flush_cond); 
-  pthread_mutex_unlock(&flush_mutex);
-  L4C_INFO("fd %d was inserted into flush queue(size: %lld)", access_fd, hvac_rpc_state_p->size); 
+  // pthread_mutex_lock(&flush_mutex);
+  // flush_queue.push(entry);
+  // pthread_cond_signal(&flush_cond); 
+  // pthread_mutex_unlock(&flush_mutex);
+  // L4C_INFO("fd %d was inserted into flush queue(size: %lld)", access_fd, hvac_rpc_state_p->size); 
 
   
   // checkpoint_manager가 삽입될 시점... 서버 DRAM에 저장. 
@@ -386,7 +387,7 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   // checkpoint_manager.write_checkpoint(fd_to_path[access_fd], hvac_rpc_state_p->buffer, hvac_rpc_state_p->size, access_fd);
 
   writebytes = write(hvac_rpc_state_p->in.accessfd, hvac_rpc_state_p->buffer, hvac_rpc_state_p->size);
-  L4C_INFO("%lld %lld", writebytes, hvac_rpc_state_p->size);
+  // L4C_INFO("%lld %lld", writebytes, hvac_rpc_state_p->size);
 
 
   // TODO: Comment Out - PFS FLush Thread에서 해제
@@ -396,7 +397,6 @@ hvac_write_rpc_handler_bulk_cb(const struct hg_cb_info *info)
   out.ret = hvac_rpc_state_p->size; 
   ret = HG_Respond(hvac_rpc_state_p->handle, NULL, NULL, &out);
   assert(ret == HG_SUCCESS);
-
   // L4C_INFO("Info server: Freeing Bulk Handle");
   HG_Bulk_free(hvac_rpc_state_p->bulk_handle);
   HG_Destroy(hvac_rpc_state_p->handle);
@@ -585,6 +585,8 @@ hvac_open_rpc_handler(hg_handle_t handle)
 
   
 
+
+
   // sy: add - for logging
   hgi = HG_Get_info(handle);
   if (!hgi)
@@ -634,6 +636,12 @@ hvac_open_rpc_handler(hg_handle_t handle)
         pthread_mutex_unlock(&path_map_mutex);
         out.ret_status = open(redir_path.c_str(), O_WRONLY | O_CREAT, 0644);
         L4C_INFO("%s is opened in WRONLY mode: %d %d", redir_path.c_str(), out.ret_status, errno);
+
+        /*
+        Logging Code insertion:
+        */
+        gettimeofday(&replica_start, NULL); 
+
 
         //Debug: Save Start time somewhere
 
@@ -697,20 +705,21 @@ hvac_close_rpc_handler(hg_handle_t handle)
   }
 
   
+  string filename;
   // 파일 DRAM에 잘 써졌는지 확인 위한 디버깅: 총 파일 크기가 PFS 상 파일 크기와 맞는지 확인 
   if ((flags & O_ACCMODE) == O_WRONLY)
   {
-    string filename = fd_to_path[in.fd]; 
+    filename = fd_to_path[in.fd]; 
 
     L4C_INFO("close: %s %d", filename.c_str(), in.fd); 
-    checkpoint_manager.read_file_metadata(filename); 
+    // checkpoint_manager.read_file_metadata(filename); 
   }
 
-  L4C_INFO("Closing File %d\n", in.fd);
+  // L4C_INFO("Closing File %d\n", in.fd);
   if (in.fd >= 0)
   {
     // Close was moved to be called on background thread.
-    // ret = close(in.fd);
+    ret = close(in.fd);
 
     // TOOD: PFS Flush Thread
     struct flush_entry entry = {
@@ -719,19 +728,35 @@ hvac_close_rpc_handler(hg_handle_t handle)
     }; 
     // flush_queue에 삽입 
     flush_queue.push(entry);
-    L4C_INFO("fd %d was pushed to flush queue on close operation %d", entry.fd, entry.op); 
+    // L4C_INFO("fd %d was pushed to flush queue on close operation %d", entry.fd, entry.op); 
     
     // Debug: It should be removed; called for debugging 
-    ret = checkpoint_manager.close_checkpoint(in.fd); 
-    L4C_INFO("close return: %d %d", ret, errno);
+    // L4C_INFO("close return: %d %d", ret, errno);
+
+    /*
+    Logging Code insertion:
+    */
+    gettimeofday(&replica_end, NULL); 
+		// Debug: 시간 차이 계산 (microsecond 단위)
+		long seconds = replica_end.tv_sec - replica_start.tv_sec;
+		long microseconds = replica_end.tv_usec - replica_start.tv_usec;
+		long total_microseconds = seconds * 1000000 + microseconds;
+		L4C_INFO("Replica %s: %lld", filename.c_str(), total_microseconds);
+
+
+
+
+
+
   }
-  else if (in.fd <= -2)
-  {
-    ret = checkpoint_manager.close_checkpoint(in.fd); 
-    // Debug: Measure Server-side handling
-    long long total_latency = std::accumulate(latencies.begin(), latencies.end(), 0LL); 
-    L4C_INFO("Server-side handle time: %lld", total_latency);
-  }
+  // Deprecated 
+  // else if (in.fd <= -2)
+  // {
+  //   ret = checkpoint_manager.close_checkpoint(in.fd); 
+  //   // Debug: Measure Server-side handling
+  //   long long total_latency = std::accumulate(latencies.begin(), latencies.end(), 0LL); 
+  //   L4C_INFO("Server-side handle time: %lld", total_latency);
+  // }
 
   assert(ret == 0);
   //	out.done = ret;
@@ -749,16 +774,17 @@ hvac_close_rpc_handler(hg_handle_t handle)
   pthread_mutex_lock(&path_map_mutex); // sy: add
   bool is_write_mode = (flags & O_ACCMODE) == O_WRONLY || (flags & O_ACCMODE) == O_RDWR;
   // File that was open in write mode should not be pushed into data_queue
-  if ((flags & O_ACCMODE) == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
-  {
-    pthread_mutex_lock(&data_mutex);
+  // Deprecated in 
+  // if ((flags & O_ACCMODE) == O_RDONLY && path_cache_map.find(fd_to_path[in.fd]) == path_cache_map.end())
+  // {
+  //   pthread_mutex_lock(&data_mutex);
 
-    data_queue.push(fd_to_path[in.fd]);
+  //   data_queue.push(fd_to_path[in.fd]);
 
-    pthread_cond_signal(&data_cond);
-    pthread_mutex_unlock(&data_mutex);
-    nvme_flag = 1;
-  }
+  //   pthread_cond_signal(&data_cond);
+  //   pthread_mutex_unlock(&data_mutex);
+  //   nvme_flag = 1;
+  // }
 
   /* Add the file with write prefix for writes */
   if (is_write_mode)
@@ -891,10 +917,11 @@ hvac_get_bbpath(string path)
   {
     L4C_ERR("Set BBPATH Prior to using HVAC");
   }
-  string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";
+  // string nvmepath = string(getenv("BBPATH")) + "/XXXXXX";
+  string nvmepath = string(getenv("BBPATH")); 
   char *newdir = (char *)malloc(strlen(nvmepath.c_str()) + 1);
   strcpy(newdir, nvmepath.c_str());
-  mkdtemp(newdir);
+  // mkdtemp(newdir);
   string dirpath = newdir;
 
   filesystem::path filepath = path;

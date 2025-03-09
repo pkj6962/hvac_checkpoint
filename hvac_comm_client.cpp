@@ -147,6 +147,8 @@ hvac_write_cb(const struct hg_cb_info *info)
   const struct hg_info *hgi;
   log_info_t log_info;
 
+  L4C_INFO("write cb called");
+
   assert(info->ret == HG_SUCCESS);
   if (info->ret != HG_SUCCESS)
   {
@@ -403,6 +405,9 @@ ssize_t hvac_seek_block()
 
 void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_close *rpc_state)
 {
+  int flag = fcntl(fd, F_GETFL);
+  int access_mode = flag & O_ACCMODE;
+
   hg_addr_t svr_addr;
   hvac_close_in_t in;
   hg_handle_t handle;
@@ -418,14 +423,27 @@ void hvac_client_comm_gen_close_rpc(uint32_t svr_hash, int fd, hvac_rpc_state_t_
   hvac_comm_create_handle(svr_addr, hvac_client_close_id, &handle);
   rpc_state->handle = handle; // sy: add
 
-  in.fd = fd_redir_map[fd];
+
+  if (access_mode == O_RDONLY)
+  {
+    in.fd = fd_redir_map[fd];
+    fd_redir_map.erase(fd);
+  }
+  else
+  {
+    in.fd = write_fd_redir_map[fd]; 
+    L4C_INFO("CLOSE TASK on fd %d was enqueued ", in.fd);
+    // JH: Erased in write_data_mover_thread
+    // write_fd_redir_map.erase(fd); 
+  }
+
   in.client_rank = client_rank;
   rpc_state->local_fd = fd;
 
   ret = HG_Forward(handle, NULL, NULL, &in);
   assert(ret == 0);
 
-  fd_redir_map.erase(fd);
+  
   HG_Destroy(handle);
   hvac_comm_free_addr(svr_addr);
 
@@ -535,7 +553,7 @@ void hvac_client_comm_gen_write_rpc(uint32_t svr_hash, int localfd, const void *
   ret = HG_Forward(hvac_rpc_state_p->handle, hvac_write_cb, hvac_rpc_state_p, &in);
   assert(ret == 0);
 
-  hvac_comm_free_addr(svr_addr);
+  // hvac_comm_free_addr(svr_addr);
 }
 
 void hvac_client_comm_gen_read_rpc(uint32_t svr_hash, int localfd, void *buffer, ssize_t count, off_t offset, hvac_rpc_state_t_client *hvac_rpc_state_p)

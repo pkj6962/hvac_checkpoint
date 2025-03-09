@@ -314,7 +314,7 @@ bool hvac_track_file(const char *path, int flags, int fd)
       // host = current_host / hvac_client_per_node;
     // JH comment: For load balancing in small experiment scale, we just set server next to the client rank.
     // JH
-      host = (current_host +1) % g_hvac_server_count; 
+      host = (current_host-1+g_hvac_server_count) % g_hvac_server_count; 
 
 
       L4C_INFO("Remote open - Host %d %s %d %d (rank: %d)", host, path, is_write_mode, is_read_mode, current_host);
@@ -417,12 +417,13 @@ ssize_t hvac_cache_write(int fd, int path_hash, const void *buf, size_t count)
     int host = path_hash % g_hvac_server_count; 
     
     // JH comment: For load balancing in small experiment scale, we just set server next to the client rank.
-    host = (current_host +1) % g_hvac_server_count; 
+    host = (current_host-1+g_hvac_server_count) % g_hvac_server_count ; 
 
 
     hvac_client_comm_gen_write_rpc(host, fd, buf, count, -1, hvac_rpc_state_p);
     // assert (false); 
     // Wait for the server to process the write request.
+    L4C_INFO("aa %lld", count);
     bytes_written = hvac_write_block(host, &done, &bytes_written, &cond, &mutex);
     L4C_INFO("bytes_written/count\t%lld/%lld | %d", bytes_written, count, host);
     if (bytes_written == -1)
@@ -668,34 +669,40 @@ void hvac_remote_close(int fd)
   int flag = fcntl(fd, F_GETFL);
   int access_mode = flag & O_ACCMODE;
 
-  if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+  // if (hvac_file_tracked(fd) && (access_mode == O_RDONLY))
+  if (hvac_file_tracked(fd) && (access_mode == O_WRONLY))
   {
-
     int host = std::hash<std::string>{}(fd_map[fd]) % g_hvac_server_count;
     int current_host = atoi(getenv("PMI_RANK"));
     // int current_host = atoi(getenv("MPI_RANK"));
-    host = hvac_extract_rank(fd_map[fd].c_str()) / hvac_client_per_node;
-
+    // host = hvac_extract_rank(fd_map[fd].c_str()) / hvac_client_per_node;
+    // JH: For small experiment scale, we set host as neighbor next to client rank. 
+    host = (current_host-1+g_hvac_server_count) % g_hvac_server_count; 
+    
     hvac_rpc_state_t_close *rpc_state = (hvac_rpc_state_t_close *)malloc(sizeof(hvac_rpc_state_t_close));
     rpc_state->done = false;
     rpc_state->timeout = false;
     rpc_state->host = 0;
     hvac_client_comm_gen_close_rpc(host, fd, rpc_state);
-  }
-  else if (hvac_file_tracked(fd) && (access_mode == O_WRONLY))
-  {
+    L4C_INFO("CLOSE_RPC was sent to %d", host); 
+  // }
+  // else if (hvac_file_tracked(fd) && (access_mode == O_WRONLY))
+  // {
     // Logic for DRAM write
     int dramfd = fd_to_dramfd[fd];
     fd_to_dramfd.erase(fd);
     // L4C_INFP("fd")
     fd_to_offset[dramfd] = 0;
     close(dramfd);
+
+    fd_map.erase(fd);
+    close(fd); 
   }
-  else
-  {
-    L4C_INFO("This should not be reached");
-    exit(-1);
-  }
+  // else
+  // {
+  //   L4C_INFO("This should not be reached");
+  //   exit(-1);
+  // }
 }
 
 bool hvac_file_tracked(int fd)
@@ -743,12 +750,26 @@ const char *hvac_get_path(int fd)
 
 bool hvac_remove_fd(int fd)
 {
+  int flag = fcntl(fd, F_GETFL); 
+	int access_mode = flag & O_ACCMODE; 
+  bool ret; 
+
   if (fd_map.empty())
   { // sy: add
     return false;
   }
-  hvac_remote_close(fd);
-  return fd_map.erase(fd);
+  
+  if (access_mode == O_WRONLY)
+  {
+    enqueue_close_task(fd); 
+    L4C_INFO("CLOSE TASK is enqueued on TASK_QUEUE");
+    ret = true; 
+  }
+  else{
+    ret = fd_map.erase(fd); 
+    L4C_INFO("fd_map was earsed on fd %d", fd); 
+  }  
+  return ret; 
 }
 
 int hvac_extract_rank(const char *file_path)
