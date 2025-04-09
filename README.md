@@ -3,6 +3,12 @@
 **FERN (Fast, Efficient ReplicatioN)** is a high-performance, fault-tolerant checkpointing system designed for large-scale LLM training on HPC clusters. It extends **HVAC (High Velocity AI Cache)** into a write-capable, distributed key-value store to enable fast and resilient checkpointing without requiring changes to the training application.
 
 
+<img src="doc/img/fern_design.png" width="600"/>
+
+
+
+
+
 ---
 
 ## ✨ Key Features
@@ -36,8 +42,6 @@ FERN consists of two main components:
     - `Index Manager`: Maintains checkpoint metadata.
         
 
-<img src="doc/img/fern_design.pdf" width="600"/>
-
 
 
 ## 📊 Performance Highlights
@@ -52,5 +56,5 @@ FERN consists of two main components:
 
 
 
-<img src="doc/img/fern_io_comparison.pdf" width="600"/>
+<img src="doc/img/fern_io_comparison.png" width="600"/>
 
