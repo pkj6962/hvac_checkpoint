@@ -63,7 +63,10 @@ FERN consists of two main components:
 
 
 
-**HVAC 오픈 소스 버그 수정** 
+
+
+<details>
+<summary>## HVAC 오픈 소스 버그 수정</summary>
 : 비동기 처리 및 콜백 동기화 방식 개선 
 
 HVAC은 내부적으로 Mercury RPC를 사용하며, 콜백 기반의 비동기 통신을 수행합니다. 클라이언트는 서볼 요청을 보낸 후, 콜백이 호출될 때까지 블록되어 데이터 무결성을 보장합니다. 
@@ -156,4 +159,5 @@ ssize_t hvac_read_block(uint32_t host, hg_bool_t *done, ssize_t *bytes_read, pth
 
 ```
 
+</details>	
 
