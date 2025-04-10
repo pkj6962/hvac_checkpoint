@@ -69,7 +69,7 @@ FERN consists of two main components:
 
 # HVAC 오픈 소스 버그 수정
 이 프로젝트는 Research-level 오픈소스([HVAC](https://code.ornl.gov/42z/hvac-high-velocity-ai-cache))를 확장해 개발한 프로젝입니다. 
-자체 환경에 해당 오픈소스를 포팅하고 멀티 GPU 환경에서 실행시 콜백 처리 과정에서 발생하는에러를 발견하고 개선해 컨트리뷰션했습니다. 
+자체 환경에 해당 오픈소스를 포팅하고 멀티 GPU 환경에서 실행시 콜백 처리 과정에서 발생하는 에러를 발견하고 개선해 컨트리뷰션했습니다. 
 
 <details>
 <summary> 콜백 동기화 방식 개선 </summary>
